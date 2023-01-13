@@ -1,0 +1,3 @@
+                           TxHash                                 TxIx        Amount
+--------------------------------------------------------------------------------------
+b202a10788f6a33ecfdf4abda70897dc13e9530bdd16499ea8776feeba2595ef     1        9996287553 lovelace + TxOutDatumNone
