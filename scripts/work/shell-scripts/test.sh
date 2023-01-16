@@ -99,16 +99,47 @@
 # echo "${build[@]}"
 # "${build[@]}"
 
-TO_WALLET=forPlutus
-LOVELACE_TO_SEND=2000000
-TOKEN_QUANTITY=1
-POLICY_ID=d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be
-TOKEN_NAME="CrowdFunding"
-TOKEN_NAME_HEX=$(echo -n "$TOKEN_NAME" | xxd -p)
-echo $TOKEN_NAME_HEX
-#TOKEN_NAME_HEX=4d7943726f776446756e64
-POL="$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}"
-txOut=(
---tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND}+'"'${POL}'"' \
-)
-echo "${txOut[@]}"
+# TO_WALLET=forPlutus
+# LOVELACE_TO_SEND=2000000
+# TOKEN_QUANTITY=1
+# POLICY_ID=d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be
+# TOKEN_NAME="CrowdFunding"
+# TOKEN_NAME_HEX=$(echo -n "$TOKEN_NAME" | xxd -p)
+# echo $TOKEN_NAME_HEX
+# #TOKEN_NAME_HEX=4d7943726f776446756e64
+# POL="$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}"
+# txOut=(
+# --tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND}+'"'${POL}'"' \
+# )
+# echo "${txOut[@]}"
+
+# LOVELACE_TO_SEND=2000000
+# PAYMENT=$LOVELACE_TO_SEND
+# TOKEN_QUANTITY=1
+# POLICY_ID=d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.43726f776446756e64696e67
+# Q1='"'1
+# PAYMENT=${PAYMENT}+$Q1" "${POLICY_ID}'"'
+# #PAYMENT=
+# echo $Q1
+# echo ${PAYMENT}
+# #echo $PAYMENT
+# TO_WALLET_ADDRESS=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg
+# final=${TO_WALLET_ADDRESS}+${PAYMENT}
+# echo $final
+
+
+# Q:
+# for i in 01 02 03 04; do ssh web.${i}.domain.com 'echo "<img src=beacon.gif?cluster=${i}>" >> /var/www/index.html'; done
+
+# Ans:
+# for i in 01 02 03 04; do
+#     ssh web.${i}.domain.com 'echo "<img src=beacon.gif?cluster='${i}'>" >> /var/www/index.html'
+# done
+
+USER_UID="$1"
+echo "generate_token(\"$USER_UID\")"
+echo "generate_token('"'$USER_UID'"')"]
+Q1=("ex \"1 asdfaf")
+echo "$Q1"
+Q2=$Q1"afdfd"
+echo $Q2

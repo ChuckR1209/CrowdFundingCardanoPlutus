@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # Generic
-BASE=/home/chakravarti/emurgocdp2/emurgocdp
+BASE=/home/chakravarti/emurgocdp2/emurgoCardano
 export WORK=$BASE/scripts/work
 export CARDANO_CLI=cardano-cli
 export TESTNET_MAGIC=2
 # Loading keys
-export FOR_PLUTUS_VKEY=/home/cardanodatos/emurgocdp/.priv/wallets/forPlutus/forPlutus.vkey
-export FOR_PLUTUS_SKEY=/home/cardanodatos/emurgocdp/.priv/wallets/forPlutus/forPlutus.skey
+# export FOR_PLUTUS_VKEY=/home/cardanodatos/emurgocdp/.priv/wallets/forPlutus/forPlutus.vkey
+# export FOR_PLUTUS_SKEY=/home/cardanodatos/emurgocdp/.priv/wallets/forPlutus/forPlutus.skey
 # export PAYMENT_ADDR=
 
 

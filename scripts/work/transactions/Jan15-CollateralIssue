@@ -1,0 +1,32 @@
+cardano-cli transaction build         --babbage-era         --cardano-mode         --testnet-magic 2  \
+--change-address=addr_test1vqxjn5hh9ws37vup0q7a54gpzw0njlvpaqeyfl8p8ea8zxs6e3vwy \
+--tx-in 134dd74515242fdb6a1e98e8db24de864e52d41cb63dd7117d08cf81c2b10537#0  \
+--tx-in-script-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/plutus-scripts/CrowdFunding.plutus \
+--tx-in-datum-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/plutus-scripts/crowdFunding-datum.json \
+--tx-in-redeemer-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/plutus-scripts/crowdFundingContribute-redeem.json \
+--tx-in d8038c3146fe364d9b2ebd196fd4aef8d6df35f92a969ddf2febdde0adbbb531#1 \
+--tx-in-collateral=d8038c3146fe364d9b2ebd196fd4aef8d6df35f92a969ddf2febdde0adbbb531#1 \
+--tx-out addr_test1wp02taqyn6rp38g4wqn7h5sxccgwkdzex9cegexxsny4qlczfn2al+9994120204+"1 d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.4d7943726f776446756e64" \
+--required-signer-hash 0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a  \
+--protocol-params-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/pparams.json \
+--out-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.draft
+
+
+
+cardano-cli transaction txid --tx-body-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.draft
+
+
+--required-signer-hash 0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a \
+
+cardano-cli transaction sign \
+--tx-body-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.draft \
+--signing-key-file  /home/chakravarti/emurgocdp2/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey \
+--testnet-magic 2 \
+--out-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.signed 
+
+
+cardano-cli transaction submit --tx-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.signed --testnet-magic 2
+
+
+
+

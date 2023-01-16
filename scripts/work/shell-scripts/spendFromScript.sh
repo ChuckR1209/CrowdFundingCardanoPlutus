@@ -7,41 +7,104 @@ source helpers.sh
 
 set -x
 
-read -p 'Script name to spend from: ' SCRIPT_NAME
+REQUIRED_SIGNER_ARRAY=()
+SIGNING_KEY_FILE_ARRAY=()
+
+# Set this for this Current run so for multiple runs no issues
+SCRIPT_NAME=CrowdFunding
+TO_WALLET_NAME=forPlutus
+COLLATERAL=Collateral
+DATUM_HASH_FILE=crowdFunding-datum
+REDEEMER_FILE=crowdFundingContribute-redeem
+
+SIGNER1=0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a
+SIGNER_FILE1=/home/chakravarti/emurgocdp2/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey
+
+if [ -z ${SIGNER1} ];
+then
+  echo "no pre-set signers provided"
+else
+  REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
+  REQUIRED_SIGNER_ARRAY+=$SIGNER1
+  REQUIRED_SIGNER_ARRAY+=' '
+  SIGNING_KEY_FILE_ARRAY+='--signing-key-file '
+  SIGNING_KEY_FILE_ARRAY+=$SIGNER_FILE1
+  SIGNING_KEY_FILE_ARRAY+=' '
+fi
+
+
+if [ -z ${SCRIPT_NAME} ];
+then
+  read -p 'Script name to spend from: ' SCRIPT_NAME
+fi
 
 SCRIPT_FILE=$WORK/plutus-scripts/${SCRIPT_NAME}.plutus 
 SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $SCRIPT_FILE --testnet-magic $TESTNET_MAGIC)
 mkdir -p $BASE/.priv/Wallets/${SCRIPT_NAME}
-echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.payment.addr
+echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.addr
 
-read -p 'Receiving wallet name: ' TO_WALLET_NAME
+if [ -z ${TO_WALLET_NAME} ];
+then
+  read -p 'Receiving wallet name: ' TO_WALLET_NAME
+fi
 
 if [[ $TO_WALLET_NAME != \addr_* ]];
 then 
-    TO_WALLET_ADDRESS=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.payment.addr)
+    TO_WALLET_ADDRESS=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.addr)
 else
     TO_WALLET_ADDRESS=$TO_WALLET_NAME
 fi
+
+echo ${TO_WALLET_ADDRESS}
 
 section "Select Script UTxO"
 getInputTx ${SCRIPT_NAME}
 SCRIPT_UTXO=$SELECTED_UTXO
 PAYMENT=$SELECTED_UTXO_LOVELACE
+UTXO_POLICY_ID=${SELECTED_UTXO_POLICYID}
+
+# this will also add the Token in the script address not just LoveLace
+if [ -z ${UTXO_POLICY_ID} ];
+then 
+    echo "no token to send"    
+    TX_OUT=${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}
+else 
+    #PAYMENT=${PAYMENT}+'"'1 ${UTXO_POLICY_ID}'"'
+    Q1="\"1"
+    Q2=" "
+    #PAYMENT=${PAYMENT}+$Q1" "${UTXO_POLICY_ID}'"'
+    TX_OUT=${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}+${Q1}" "${UTXO_POLICY_ID}'"'
+fi
+echo "Your tx-out payment from script is : ${PAYMENT}"
+
+echo ${TX_OUT}
+
 
 section "Select Collateral UTxO"
-read -p 'Collateral wallet name: ' COLLATERAL
+
+if [ -z ${COLLATERAL} ];
+then
+  read -p 'Collateral wallet name: ' COLLATERAL
+fi
+
 getInputTx ${COLLATERAL}
 COLLATERAL_TX=$SELECTED_UTXO
 FEE_ADDR=$SELECTED_WALLET_ADDR
 
-read -p 'Datum hash file name: ' DATUM_HASH_FILE
-read -p 'Redeemer file name: ' REDEEMER_FILE
+if [ -z ${DATUM_HASH_FILE} ];
+then
+  read -p 'Datum hash file name: ' DATUM_HASH_FILE
+fi
+
+if [ -z ${REDEEMER_FILE} ];
+then
+  read -p 'Redeemer file name: ' REDEEMER_FILE
+fi
 
 DATUM_HASH_FILE=${DATUM_HASH_FILE}.json
 REDEEMER_FILE=${REDEEMER_FILE}.json
 
-REQUIRED_SIGNER_ARRAY=()
-SIGNING_KEY_FILE_ARRAY=()
+
 while true; do
 read -p 'Add required-signer-hash? [Y/N]: ' input
 case $input in
@@ -116,7 +179,7 @@ case $input in
             TO_WALLET_ADDRESS=$TO_WALLET_NAME
         fi
         TO_WALLET_NAME_ARRAY+='--tx-out '
-        TO_WALLET_NAME_ARRAY+=$TO_WALLET_ADDRESS+$LOVELACE_TO_SEND
+        TO_WALLET_NAME_ARRAY+=$TO_WALLET_ADDRESS+$LOVELACE_TO_SEND 
         PAYMENT=$(expr $PAYMENT - $LOVELACE_TO_SEND)
         ;;
     [nN][oO]|[nN])
@@ -159,13 +222,18 @@ case $input in
         --spending-reference-tx-in-redeemer-file $WORK/plutus-scripts/${REDEEMER_FILE} \
         --tx-in ${COLLATERAL_TX} \
         --tx-in-collateral=${COLLATERAL_TX} \
-        --tx-out ${TO_WALLET_ADDRESS}+${PAYMENT} \
+        #--tx-out ${TO_WALLET_ADDRESS}+${PAYMENT} \
+        --tx-out ${TX_OUT} \
         ${TO_WALLET_NAME_ARRAY} \
         ${REQUIRED_SIGNER_ARRAY} \
         --protocol-params-file $WORK/transactions/pparams.json \
         --out-file $WORK/transactions/tx.draft)
         ;;
     [nN][oO]|[nN])
+      if [ -z ${UTXO_POLICY_ID} ];
+      then 
+        echo "No token"
+        # No token to spend
         $CARDANO_CLI transaction build \
         --babbage-era \
         --cardano-mode \
@@ -178,12 +246,35 @@ case $input in
         --tx-in-redeemer-file $WORK/plutus-scripts/${REDEEMER_FILE} \
         --tx-in ${COLLATERAL_TX} \
         --tx-in-collateral=${COLLATERAL_TX} \
-        --tx-out ${TO_WALLET_ADDRESS}+${PAYMENT} \
+        #--tx-out ${TO_WALLET_ADDRESS}+${PAYMENT} \
+        --tx-out ${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE} \
+        #--tx-out "'${TX_OUT}'" \
         ${TO_WALLET_NAME_ARRAY} \
         ${REQUIRED_SIGNER_ARRAY} \
         --protocol-params-file $WORK/transactions/pparams.json \
         --out-file $WORK/transactions/tx.draft
-        ;;
+      else
+        echo "Token is there"
+        # Token to spend is there
+        build=("$CARDANO_CLI transaction build \
+        --babbage-era \
+        --cardano-mode \
+        --testnet-magic $TESTNET_MAGIC \
+        ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} \
+        --change-address=${FEE_ADDR} \
+        --tx-in ${SCRIPT_UTXO} \
+        --tx-in-script-file ${SCRIPT_FILE} \
+        --tx-in-datum-file $WORK/plutus-scripts/${DATUM_HASH_FILE} \
+        --tx-in-redeemer-file $WORK/plutus-scripts/${REDEEMER_FILE} \
+        --tx-in ${COLLATERAL_TX} \
+        --tx-in-collateral=${COLLATERAL_TX} \
+        --tx-out ${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" \
+        ${TO_WALLET_NAME_ARRAY} \
+        ${REQUIRED_SIGNER_ARRAY} \
+        --protocol-params-file $WORK/transactions/pparams.json \
+        --out-file $WORK/transactions/tx.draft")
+      fi
+      ;;
     *)
         echo "Invalid input..."
         exit 1
@@ -193,7 +284,7 @@ esac
 # print the cardano transaction build
 # cat $build
 # execute the cardano transaction build
-# "${build[@]}"
+"${build[@]}"
 
 TX_HASH=$($CARDANO_CLI transaction txid --tx-body-file $WORK/transactions/tx.draft)
 # TX_ANALYZE=$($CARDANO_CLI transaction view --tx-body-file $WORK/transactions/tx.draft)

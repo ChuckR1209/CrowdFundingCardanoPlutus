@@ -66,6 +66,10 @@ targetAmount = 5000000000   -- 5000 Ada
 beneficiaryHash :: B.ByteString
 beneficiaryHash = "dbbab47cf610921db8e266c3747cd393db6f9d4b7eb8e348ddeb3971"  -- forPlutus wallet
 
+
+contributorHash :: B.ByteString
+contributorHash = "8c573e818f35a8fa8a693933c396561b0622a88bbf34952c4d572cd7"  -- Contributor wallet
+
 crowdDeadline :: Ledger.POSIXTime
 crowdDeadline = 1671159023000
 
@@ -79,10 +83,30 @@ datumCrowd = OnChain.Dat {
                            , OnChain.targetAmount = targetAmount
                            , OnChain.contributorsMap = []}
 
+
+
+-- Redeemer 
+
+
+
+contributorAmount :: Integer
+contributorAmount = 2000000   -- 2 Ada contribution
+
+redeemCrowdContribute :: OnChain.Redeem
+redeemCrowdContribute = OnChain.Contribute {  
+                             OnChain.contribution = (convertToPubKeyHash contributorHash, contributorAmount)
+                            }
+
+redeemCrowdClose :: OnChain.Redeem
+redeemCrowdClose = OnChain.Close
+
+
 main :: IO()
 main = do
     writeDatumUnit
     writeCrowdDatum
+    writeCrowdRedeemClose
+    writeCrowdRedeemContribute
     _ <- writeCrowdFunding
 
 
@@ -111,6 +135,19 @@ writeCrowdDatum =
     let crowd = datumCrowd
         d = PlutusTx.toBuiltinData crowd
     in writeJSON "src/CrowdFunding/Deploy/crowdFunding-datum.json" d
+
+
+writeCrowdRedeemContribute :: IO ()
+writeCrowdRedeemContribute = 
+    let crowd = redeemCrowdContribute
+        r = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFundingContribute-redeem.json" r
+
+writeCrowdRedeemClose :: IO ()
+writeCrowdRedeemClose = 
+    let crowd = redeemCrowdClose
+        r = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFundingClose-redeem.json" r
 
 writeCrowdFunding :: IO (Either (FileError ()) ())
 writeCrowdFunding = writeValidator "src/CrowdFunding/Deploy/CrowdFunding.plutus" $ OnChain.validator
