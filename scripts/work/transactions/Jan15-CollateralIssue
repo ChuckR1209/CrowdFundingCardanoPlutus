@@ -28,5 +28,19 @@ cardano-cli transaction sign \
 cardano-cli transaction submit --tx-file /home/chakravarti/emurgocdp2/emurgoCardano/scripts/work/transactions/tx.signed --testnet-magic 2
 
 
+------ nextrun - 1/16/23 1230AM
+cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 \ 
+--change-address=addr_test1vqxjn5hh9ws37vup0q7a54gpzw0njlvpaqeyfl8p8ea8zxs6e3vwy \ 
+--tx-in 244ad7797c03fee94529fc54e50a45c64aad051ae1f9eb7889f4d28cddc23c59#0 \ 
+--tx-in-script-file /home/chakravarti/emurgoCardano/scripts/work/plutus-scripts/CrowdFunding.plutus         
+--tx-in-datum-file /home/chakravarti/emurgoCardano/tx/CF-datum.json \ 
+--tx-in-redeemer-file /home/chakravarti/emurgoCardano/tx/CFC-redeem.json \ 
+--tx-in 244ad7797c03fee94529fc54e50a45c64aad051ae1f9eb7889f4d28cddc23c59#1 \ 
+--tx-in-collateral=244ad7797c03fee94529fc54e50a45c64aad051ae1f9eb7889f4d28cddc23c59#1  \
+--tx-out addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg+9994120204+"1 d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.4d7943726f776446756e64" \ 
+--required-signer-hash 0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a  \ 
+--protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json
 
+
+--signing-key-file /home/chakravarti/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey \
 

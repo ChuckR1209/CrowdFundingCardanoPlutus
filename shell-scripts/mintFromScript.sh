@@ -7,14 +7,67 @@ source helpers.sh
 
 set -x
 
-read -p 'Script name to spend from: ' SCRIPT_NAME
+REQUIRED_SIGNER_ARRAY=()
+SIGNING_KEY_FILE_ARRAY=()
+
+# Input for this run only 
+SCRIPT_NAME=MintBurn
+UTXOWALLET=forPlutus
+LOVELACE_TO_SEND=2000000
+TO_WALLET_NAME=forPlutus
+COLLATERAL=Collateral
+TOKEN_NAME=MyCrowdFund
+TOKEN_QUANTITY=1
+REDEEMER_FILE=redeemer-mint.json
+
+# Collateral
+SIGNER1=0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a
+SIGNER_FILE1=$BASE/.priv/Wallets/Collateral/Collateral.skey
+# forPlutus
+SIGNER2=dbbab47cf610921db8e266c3747cd393db6f9d4b7eb8e348ddeb3971
+SIGNER_FILE2=$BASE/.priv/Wallets/forPlutus/forPlutus.skey
+
+if [ -z ${SIGNER1} ];
+then
+  echo "no pre-set signers provided"
+else
+  REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
+  REQUIRED_SIGNER_ARRAY+=$SIGNER1
+  REQUIRED_SIGNER_ARRAY+=' '
+  #SIGNING_KEY_FILE_ARRAY+='--required-signer '
+  SIGNING_KEY_FILE_ARRAY+='--signing-key-file '
+  
+  SIGNING_KEY_FILE_ARRAY+=$SIGNER_FILE1
+  SIGNING_KEY_FILE_ARRAY+=' '
+fi
+if [ -z ${SIGNER2} ];
+then
+  echo "no pre-set signers provided"
+else
+  REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
+  REQUIRED_SIGNER_ARRAY+=$SIGNER2
+  REQUIRED_SIGNER_ARRAY+=' '
+  SIGNING_KEY_FILE_ARRAY+='--signing-key-file '
+  SIGNING_KEY_FILE_ARRAY+=$SIGNER_FILE2
+  SIGNING_KEY_FILE_ARRAY+=' '
+fi
+
+
+if [ -z ${SCRIPT_NAME} ];
+then
+    read -p 'Script name to spend from: ' SCRIPT_NAME
+fi
+
 
 read -p 'Do you need to pick a UTXO spend for NFT? [Y/N]: ' inputUtxoSpend
 REQUIRED_TX_IN_ARRAY=()
 case $inputUtxoSpend in
     [yY][eE][sS]|[yY])
         echo "You say Yes"
-        read -p 'Input wallet: ' UTXOWALLET
+        if [ -z ${UTXOWALLET} ];
+        then
+            read -p 'Input wallet: ' UTXOWALLET
+        fi
         getInputTx ${UTXOWALLET}
         UTXOWALLET_TX=$SELECTED_UTXO
         FEE_ADDR=$SELECTED_WALLET_ADDR
@@ -38,16 +91,23 @@ esac
 # echo "Script name to spend from = ${SCRIPT_NAME}"
 # echo "From Wallet name = ${FROM_WALLET}"    # if needed.
 
-SCRIPT_FILE=$WORK/plutus-scripts/${SCRIPT_NAME}.plutus 
+#SCRIPT_FILE=$WORK/plutus-scripts/${SCRIPT_NAME}.plutus 
+SCRIPT_FILE=$BASE/plutus-scripts/${SCRIPT_NAME}.plutus 
 SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $SCRIPT_FILE --testnet-magic $TESTNET_MAGIC)
-mkdir -p $BASE/.priv/wallets/${SCRIPT_NAME}
-echo $SCRIPT_ADDRESS > $BASE/.priv/wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.payment.addr
+mkdir -p $BASE/.priv/Wallets/${SCRIPT_NAME}
+echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.addr
 
 POLICY_ID=$($CARDANO_CLI transaction policyid --script-file $SCRIPT_FILE)
 
-read -p 'Lovelace to send: ' LOVELACE_TO_SEND
-read -p 'Receiving wallet name: ' TO_WALLET_NAME
+if [ -z ${LOVELACE_TO_SEND} ];
+then 
+    read -p 'Lovelace to send: ' LOVELACE_TO_SEND
+fi
 
+if [ -z ${TO_WALLET_NAME} ];
+then
+    read -p 'Receiving wallet name: ' TO_WALLET_NAME
+fi
 
 
 # i think if wallet you dont give address directly - it pattern matches with addr*
@@ -59,7 +119,10 @@ else
 fi
 
 section "Select Collateral UTxO"
-read -p 'Collateral wallet name: ' COLLATERAL
+if [ -z ${COLLATERAL} ];
+then
+    read -p 'Collateral wallet name: ' COLLATERAL
+fi
 getInputTx ${COLLATERAL}
 COLLATERAL_TX=$SELECTED_UTXO
 FEE_ADDR=$SELECTED_WALLET_ADDR
@@ -70,18 +133,26 @@ REQUIRED_TX_IN_ARRAY+=$COLLATERAL_TX
 
 
 section "Token Creation"
-read -p 'Token Name ' TOKEN_NAME
-read -p 'Token quantity ' TOKEN_QUANTITY
+
+if [ -z ${TOKEN_NAME} ];
+then
+    read -p 'Token Name ' TOKEN_NAME
+fi
+if [ -z ${TOKEN_QUANTITY} ];
+then
+    read -p 'Token quantity ' TOKEN_QUANTITY
+fi
 
 # this i guess only creates a hex and not a public key hash
 TOKEN_NAME_HEX=$(echo -n "$TOKEN_NAME" | xxd -p)
 
 echo $TOKEN_NAME_HEX
 
-read -p 'Redeemer file name: ' REDEEMER_FILE
+if [ -z ${REDEEMER_FILE} ];
+then
+    read -p 'Redeemer file name: ' REDEEMER_FILE
+fi
 
-REQUIRED_SIGNER_ARRAY=()
-SIGNING_KEY_FILE_ARRAY=()
 
 # below we have a while loop to add multiple signatures. WHen input is yes it will take the 
 #     Signer hash and the signer key file. and since its while loop again asks. 
@@ -125,21 +196,25 @@ ${REQUIRED_TX_IN_ARRAY} \
 --change-address=${FEE_ADDR} \
 --mint="$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}" \
 --mint-script-file ${SCRIPT_FILE} \
---mint-redeemer-file $WORK/plutus-scripts/${REDEEMER_FILE} \
+--mint-redeemer-file $BASE/plutus-scripts/${REDEEMER_FILE} \
 --tx-in-collateral=${COLLATERAL_TX} \
 ${REQUIRED_SIGNER_ARRAY} \
---protocol-params-file $WORK/transactions/pparams.json \
---out-file $WORK/transactions/tx.draft)
+#--protocol-params-file $WORK/transactions/pparams.json \
+--protocol-params-file $BASE/tx/pparams.json \
+#--out-file $WORK/transactions/tx.draft)
+--out-file $BASE/tx/tx.draft)
 
 # print the cardano transaction build
 # cat $build
 # execute the cardano transaction build
 "${build[@]}"
 
+#--tx-body-file $WORK/transactions/tx.draft \
 $CARDANO_CLI transaction sign \
---tx-body-file $WORK/transactions/tx.draft \
+--tx-body-file $BASE/tx/tx.draft \
 ${SIGNING_KEY_FILE_ARRAY} \
 --testnet-magic $TESTNET_MAGIC \
---out-file $WORK/transactions/tx.signed \
+--out-file $BASE/tx/tx.signed \
 
-$CARDANO_CLI transaction submit --tx-file $WORK/transactions/tx.signed --testnet-magic $TESTNET_MAGIC
+#$CARDANO_CLI transaction submit --tx-file $WORK/transactions/tx.signed --testnet-magic $TESTNET_MAGIC
+$CARDANO_CLI transaction submit --tx-file $BASE/tx/tx.signed --testnet-magic $TESTNET_MAGIC

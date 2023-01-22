@@ -7,7 +7,7 @@ set -o pipefail
 
 function getInputTx() {
 	#echo "inHelpers - getInputtx"
-	BALANCE_FILE=$WORK/transactions/walletBalances.txt
+	BALANCE_FILE=$BASE/tx/walletBalances.txt
 
 #   Allows removing root-owned files and directories. rm - Linux command for removing files or directories. 
 #   -r - The option indicates recursive removal and helps remove non-empty directories. 
@@ -44,7 +44,7 @@ function getInputTx() {
 }
 
 walletAddress() {
-	WALLET_ADDRESS=$(cat $BASE/.priv/wallets/$1/$1.payment.addr)
+	WALLET_ADDRESS=$(cat $BASE/.priv/Wallets/$1/$1.payment.addr)
 }
 
 setDatumHash() {
@@ -53,9 +53,9 @@ setDatumHash() {
 }
 
 getScriptAddress() {
-	SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $WORK/plutus-scripts/${SCRIPT_NAME}.plutus --testnet-magic $TESTNET_MAGIC)
-        mkdir -p $BASE/.priv/wallets/${SCRIPT_NAME}
-        echo $SCRIPT_ADDRESS > $BASE/.priv/wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.payment.addr
+	SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $BASE/plutus-scripts/${SCRIPT_NAME}.plutus --testnet-magic $TESTNET_MAGIC)
+        mkdir -p $BASE/.priv/Wallets/${SCRIPT_NAME}
+        echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.addr
 }
 
 function section {

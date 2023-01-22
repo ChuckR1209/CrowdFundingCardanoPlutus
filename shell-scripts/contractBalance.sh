@@ -11,7 +11,7 @@ fi
 
 
 SCRIPT_NAME=$1
-SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $WORK/plutus-scripts/${SCRIPT_NAME}.plutus --testnet-magic $TESTNET_MAGIC)
+SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $BASE/plutus-scripts/${SCRIPT_NAME}.plutus --testnet-magic $TESTNET_MAGIC)
 mkdir -p $BASE/.priv/wallets/${SCRIPT_NAME}
-echo $SCRIPT_ADDRESS > $BASE/.priv/wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.payment.addr
+echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.addr
 ./balance.sh ${SCRIPT_NAME}

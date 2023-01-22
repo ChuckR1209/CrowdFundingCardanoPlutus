@@ -12,7 +12,7 @@ set -o pipefail
 
 # Define export variables
 #export BASE=/home/cardanodatos/emurgotemp
-export BASE=/home/chakravarti/emurgocdp2/emurgoCardano
+export BASE=/home/chakravarti/emurgoCardano
 export WORK=$BASE/scripts/work
 
 # PROJECT_ID is for blockfrost datum query, get your account here

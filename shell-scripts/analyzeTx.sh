@@ -4,4 +4,4 @@ set -o pipefail
 
 . "$(dirname $0)"/env # soure env variables
 
-$CARDANO_CLI transaction view --tx-body-file $WORK/transactions/tx.draft
+$CARDANO_CLI transaction view --tx-body-file $BASE/tx/tx.draft

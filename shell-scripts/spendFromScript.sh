@@ -14,20 +14,20 @@ SIGNING_KEY_FILE_ARRAY=()
 SCRIPT_NAME=CrowdFunding
 TO_WALLET_NAME=forPlutus
 COLLATERAL=Collateral
-DATUM_HASH_FILE=crowdFunding-datum
-REDEEMER_FILE=crowdFundingContribute-redeem
+DATUM_HASH_FILE=CF-datum
+REDEEMER_FILE=CFC-redeem
 
 SIGNER1=0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a
-SIGNER_FILE1=/home/chakravarti/emurgocdp2/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey
+SIGNER_FILE1=$BASE/.priv/Wallets/Collateral/Collateral.skey
 
 if [ -z ${SIGNER1} ];
 then
   echo "no pre-set signers provided"
 else
-  REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
-  REQUIRED_SIGNER_ARRAY+=$SIGNER1
-  REQUIRED_SIGNER_ARRAY+=' '
-  SIGNING_KEY_FILE_ARRAY+='--signing-key-file '
+  # REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
+  # REQUIRED_SIGNER_ARRAY+=$SIGNER1
+  # REQUIRED_SIGNER_ARRAY+=' '
+  SIGNING_KEY_FILE_ARRAY+='--required-signer '
   SIGNING_KEY_FILE_ARRAY+=$SIGNER_FILE1
   SIGNING_KEY_FILE_ARRAY+=' '
 fi
@@ -193,7 +193,7 @@ case $input in
 esac
 done
 
-$CARDANO_CLI query protocol-parameters --testnet-magic $TESTNET_MAGIC > $WORK/transactions/pparams.json
+$CARDANO_CLI query protocol-parameters --testnet-magic $TESTNET_MAGIC > $BASE/tx/pparams.json
 
 #Section to allow the new feature for reference scripts
 
@@ -247,7 +247,7 @@ case $input in
         --tx-in ${COLLATERAL_TX} \
         --tx-in-collateral=${COLLATERAL_TX} \
         #--tx-out ${TO_WALLET_ADDRESS}+${PAYMENT} \
-        --tx-out ${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE} \
+        --tx-out ${TO_WALLET_ADDRESS}+${SELECTED_UTXO_LOVELACE} \
         #--tx-out "'${TX_OUT}'" \
         ${TO_WALLET_NAME_ARRAY} \
         ${REQUIRED_SIGNER_ARRAY} \
@@ -255,24 +255,9 @@ case $input in
         --out-file $WORK/transactions/tx.draft
       else
         echo "Token is there"
+        echo ""
         # Token to spend is there
-        build=("$CARDANO_CLI transaction build \
-        --babbage-era \
-        --cardano-mode \
-        --testnet-magic $TESTNET_MAGIC \
-        ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} \
-        --change-address=${FEE_ADDR} \
-        --tx-in ${SCRIPT_UTXO} \
-        --tx-in-script-file ${SCRIPT_FILE} \
-        --tx-in-datum-file $WORK/plutus-scripts/${DATUM_HASH_FILE} \
-        --tx-in-redeemer-file $WORK/plutus-scripts/${REDEEMER_FILE} \
-        --tx-in ${COLLATERAL_TX} \
-        --tx-in-collateral=${COLLATERAL_TX} \
-        --tx-out ${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" \
-        ${TO_WALLET_NAME_ARRAY} \
-        ${REQUIRED_SIGNER_ARRAY} \
-        --protocol-params-file $WORK/transactions/pparams.json \
-        --out-file $WORK/transactions/tx.draft")
+        build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} --change-address=${FEE_ADDR} --tx-in ${SCRIPT_UTXO} --tx-in-script-file ${SCRIPT_FILE} --tx-in-datum-file $BASE/tx/${DATUM_HASH_FILE} --tx-in-redeemer-file $BASE/tx/${REDEEMER_FILE} --tx-in ${COLLATERAL_TX} --tx-in-collateral=${COLLATERAL_TX} --tx-out ${TO_WALLET_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" ${TO_WALLET_NAME_ARRAY} ${SIGNING_KEY_FILE_ARRAY} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
       fi
       ;;
     *)
@@ -282,7 +267,7 @@ case $input in
 esac
 
 # print the cardano transaction build
-# cat $build
+#echo "${build[@]}"
 # execute the cardano transaction build
 "${build[@]}"
 
