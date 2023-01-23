@@ -86,22 +86,42 @@ data Dt1 = Dt1 {
 {-# INLINABLE crowdValidator #-}
 crowdValidator :: Dat -> Redeem -> Contexts.ScriptContext -> Bool
 crowdValidator d r context = 
+--  This validates 3 parameters to be equal 
+--             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
+--             2nd parameter - Values calculated based on Datum passed to the Validator
+--             3rd parametr - Values calculated from Datum at the UTXO.     
     traceIfFalse "wrong input value" ( correctInputValue d )   &&    -- NEED TO ADD Policy id cannot be blank.
-    -- traceIfFalse "Only 1 tx-out allowed" correctOutputLength &&   -- not true - can have change address
+    
 
     -- i am expecting only 1 Datum in my tx-ins the Spending UTXO with NFT - so should not get more than one. Other Tx-ins will only have Payment addresses like Fee
-    traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
-    -- i am expecting only 1 Datum in my tx-out to write back to the Script with NFT - so should not get more than one. Other Tx-out will only have Payment addresses like Change
-    traceIfFalse "Only 1 tx-out Datum allowed"  only1ValidDatumTxOut &&
-    traceIfFalse "Constructed Values expected between tx-out Datum and TxIn datum plus Redeem is wrong" correctOutputDatumValue &&
-    traceIfFalse "Actual tx-out Values and constructed Datum tx-out dont match" correctOutputValue &&
-    traceIfFalse "the ContributedSoFar amount has a descrepancy" correntTargetAmountSoFar
-    -- case r of 
-    -- -- traceIfFalse "Failure to guess" (guess d == redeem r) &&
-    -- (Close) -> traceIfFalse "Not signed by beneficiary" signedByBeneficiary 
-    -- (Contribute cmap ) -> traceIfFalse "wrong input value" ( correctInputValue d )
+    -- traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
+    
+    case r of 
+      (Contribute cmap ) -> 
+        -- traceIfFalse "Only 1 tx-out allowed" correctOutputLength &&   -- not true - can have change address
+        -- Only 1 tx-in with datum allowed- other can be payment address fee etc. which dont have datum
+          traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
+
+          -- i am expecting only 1 Datum in my tx-out to write back to the Script with NFT - so should not get more than one. Other Tx-out will only have Payment addresses like Change
+          traceIfFalse "Only 1 tx-out Datum allowed"  only1ValidDatumTxOut &&
+
+--        Validates expected Values based on Datum of tx-out and tx-in - tx-in Value  + redeemer value = tx-out Value
+          traceIfFalse "Constructed Values calculated between tx-out Datum and TxIn datum plus Redeem is wrong" correctOutputDatumValue &&
+
+--        Validates the actual value at tx-out with calculated Value based on tx-out Datum
+          traceIfFalse "Actual tx-out Values and constructed Datum tx-out dont match" correctOutputValue &&
+
+--        tx-out - Datum collected amount should be updated with Tx-in amount + contributed amount
+          traceIfFalse "the ContributedSoFar amount has a descrepancy" correctTargetAmountSoFarDatum && 
+
+--        tx-in and tx-out - Beneficiary, Deadline and Target amount should be same.
+          traceIfFalse "Datums check: Either beneficiary , deadline or targetAmount is not matching" correctRestDatum &&
+
+--        The tx-out Contributors map should be tx-in Contributor map + Redeem map
+          traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum 
+      Close -> 
     -- traceIfFalse "wrong output datum" (correctOutputDatum d)             
-    -- -- traceIfFalse "Not signed by beneficiary" signedByBeneficiary &&
+          traceIfFalse "Not signed by beneficiary" signedByBeneficiary
     -- -- traceIfFalse "Deadline not yet reached" deadlinepassed
     -- -- need to check that Value being paid to script with NFT does not have any other tokens
     -- -- 
@@ -176,12 +196,17 @@ crowdValidator d r context =
       getTargetAmountFromDatum [(Just d)] = Just (targetAmount d)
       getTargetAmountFromDatum _ = Nothing
 
+      maybeTargetAmountTxIn :: Maybe Integer
+      maybeTargetAmountTxIn = getTargetAmountFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO inputsAllResolved)))
+
+      maybeTargetAmountTxOut :: Maybe Integer
+      maybeTargetAmountTxOut = getTargetAmountFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))
+
+
+
+--    Total Amount so Far
       getActualTargetAmountSoFarFromDatum :: [Maybe Dat] -> Maybe Integer
-      -- getActualTargetAmountSoFarFromDatum [(Just ())] = Nothing
       getActualTargetAmountSoFarFromDatum [(Just d)] = Just (actualtargetAmountsoFar d)
-    --   getActualTargetAmountSoFarFromDatum [(Just d)] = case (actualtargetAmountsoFar d) of
-    --                                                    0 -> Nothing
-    --                                                    otherwise -> Just (actualtargetAmountsoFar d)
       getActualTargetAmountSoFarFromDatum _ = Nothing
 
       maybeTargetAmountSoFarTxIn :: Maybe Integer
@@ -191,17 +216,45 @@ crowdValidator d r context =
       maybeTargetAmountSoFarTxOut = getActualTargetAmountSoFarFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))
 
 
+
+
+
+--    Deadline
       getDeadlineFromDatum :: [Maybe Dat] -> Maybe LedgerApiV2.POSIXTime
       getDeadlineFromDatum [(Just d)] = Just (deadline d)
       getDeadlineFromDatum _ = Nothing
 
+      maybeDeadlineFromDatumTxIn :: Maybe LedgerApiV2.POSIXTime
+      maybeDeadlineFromDatumTxIn = getDeadlineFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO inputsAllResolved)))      
+
+      maybeDeadlineFromDatumTxOut :: Maybe LedgerApiV2.POSIXTime
+      maybeDeadlineFromDatumTxOut = getDeadlineFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))      
+
+
+--    Beneficiary
       getBeneficiaryFromDatum :: [Maybe Dat] -> Maybe Ledger.PaymentPubKeyHash
       getBeneficiaryFromDatum [(Just d)] = Just (beneficiary d)
       getBeneficiaryFromDatum _ = Nothing
 
+      maybeBeneficiaryFromDatumTxIn :: Maybe Ledger.PaymentPubKeyHash
+      maybeBeneficiaryFromDatumTxIn = getBeneficiaryFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO inputsAllResolved)))  
+
+      maybeBeneficiaryFromDatumTxOut :: Maybe Ledger.PaymentPubKeyHash
+      maybeBeneficiaryFromDatumTxOut = getBeneficiaryFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))  
+
+
+--    Contribution Map
       getContributorsMapFromDatum :: [Maybe Dat] -> Maybe [(Ledger.PaymentPubKeyHash,Integer)]
       getContributorsMapFromDatum [(Just d)] = Just (contributorsMap d)
       getContributorsMapFromDatum _ = Nothing
+
+      maybeContributorsMapFromDatumTxIn :: Maybe [(Ledger.PaymentPubKeyHash,Integer)]
+      maybeContributorsMapFromDatumTxIn = getContributorsMapFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO inputsAllResolved)))
+
+      maybeContributorsMapFromDatumTxOut :: Maybe [(Ledger.PaymentPubKeyHash,Integer)]
+      maybeContributorsMapFromDatumTxOut = getContributorsMapFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))
+
+
 
       -- Construct the Token from Datum
     --   datumTokenValue :: Maybe Ledger.Value
@@ -257,8 +310,18 @@ crowdValidator d r context =
       getAllValuesTxIns = fmap Contexts.txOutValue inputsAllResolved
 
 
-      correntTargetAmountSoFar :: Bool
-      correntTargetAmountSoFar = validateTargetAmountSoFar maybeTargetAmountSoFarTxIn maybeTargetAmountSoFarTxOut
+
+--    Check correctness of Datum for rest of static fields.
+      correctRestDatum :: Bool
+      correctRestDatum = (maybeBeneficiaryFromDatumTxIn == maybeBeneficiaryFromDatumTxOut) && (maybeDeadlineFromDatumTxIn == maybeDeadlineFromDatumTxOut) 
+                                && (maybeTargetAmountTxIn == maybeTargetAmountTxOut)
+      correctContributionMapDatum :: Bool
+      correctContributionMapDatum = (maybeContributorsMapFromDatumTxOut == maybeNewContributorDatum)
+
+--    FOr this validation the Target Amount so far has to increase in the tx-out by contribution amount. So we add that from Redeemer.
+--    This is only Datum validation. Not value. Thats done with "correctOutputValue"
+      correctTargetAmountSoFarDatum :: Bool
+      correctTargetAmountSoFarDatum = validateTargetAmountSoFar maybeTargetAmountSoFarTxIn maybeTargetAmountSoFarTxOut
 
 
       validateTargetAmountSoFar :: Maybe Integer -> Maybe Integer -> Bool
@@ -266,6 +329,14 @@ crowdValidator d r context =
       validateTargetAmountSoFar (Just x) Nothing = False
       validateTargetAmountSoFar Nothing (Just y) = False
       validateTargetAmountSoFar Nothing Nothing = False
+
+--    Validate the Contributor map 
+--    Add the redeemer to Contributor map from Tx-in Datum contributor map
+      maybeNewContributorDatum :: Maybe [(Ledger.PaymentPubKeyHash,Integer)]
+      maybeNewContributorDatum = case maybeContributorsMapFromDatumTxIn of 
+                                   Just cp -> Just ((contribution r ) : cp)
+                                   Nothing -> Just [(contribution r ) ]
+
 
 --      these below we will not use now. But code is there for going in to get All datums from all Tx-in for later use
         -- inputsAllResolvedDatums :: [V2LedgerTx.OutputDatum]
@@ -326,9 +397,11 @@ crowdValidator d r context =
       --      but now we also have Datum at the UTXO being consumed - so i actually need to get Datum from there and construct my Value based on orig Datum
 
 
---    This takes the 1st parameter from Tx-ins 
+--    This validates 3 parameters to be equal 
+--             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
+--             2nd parameter - Values constructed based on Datum passed to the Validator
+--             3rd parametr - Values constructed from Datum at the UTXO. 
       correctInputValue :: Dat -> Bool
-              --    Left side is what's value from Tx-in and     right side is expected from Datum
       -- correctInputValue dt = checkInputFound getAllValuesTxIns (tokenValue <> Ada.lovelaceValueOf (minLovelace + ( amountInDatum (contributorsMap dt) ))) totalValueDatumTxin
       correctInputValue dt = checkInputFound getAllValuesTxIns (tokenValue <> Ada.lovelaceValueOf  (( amountInDatum (contributorsMap dt) )) <> minAda) (totalValueDatumTxin )  
 --         correctInputValue dt = tokenValue == tokenValue <> Ada.lovelaceValueOf (minLovelace + ( amountInDatum (contributorsMap dt) ))    --- Temp
