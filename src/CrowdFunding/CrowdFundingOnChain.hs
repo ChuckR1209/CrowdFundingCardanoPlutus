@@ -85,19 +85,16 @@ data Dt1 = Dt1 {
 -- 3. onchain code
 {-# INLINABLE crowdValidator #-}
 crowdValidator :: Dat -> Redeem -> Contexts.ScriptContext -> Bool
-crowdValidator d r context = 
---  This validates 3 parameters to be equal 
+crowdValidator d r context =     
+    case r of 
+      (Contribute cmap ) -> 
+
+--        This validates 3 parameters to be equal 
 --             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
 --             2nd parameter - Values calculated based on Datum passed to the Validator
 --             3rd parametr - Values calculated from Datum at the UTXO.     
-    traceIfFalse "wrong input value" ( correctInputValue d )   &&    -- NEED TO ADD Policy id cannot be blank.
-    
+          traceIfFalse "wrong input value" ( correctInputValue d )   &&    -- NEED TO ADD Policy id cannot be blank.
 
-    -- i am expecting only 1 Datum in my tx-ins the Spending UTXO with NFT - so should not get more than one. Other Tx-ins will only have Payment addresses like Fee
-    -- traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
-    
-    case r of 
-      (Contribute cmap ) -> 
         -- traceIfFalse "Only 1 tx-out allowed" correctOutputLength &&   -- not true - can have change address
         -- Only 1 tx-in with datum allowed- other can be payment address fee etc. which dont have datum
           traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
@@ -118,9 +115,16 @@ crowdValidator d r context =
           traceIfFalse "Datums check: Either beneficiary , deadline or targetAmount is not matching" correctRestDatum &&
 
 --        The tx-out Contributors map should be tx-in Contributor map + Redeem map
-          traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum 
+          traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum &&
+
+--        Scripts address validations for Tx-in and Tx-out
+          traceIfFalse "Scripts address validations for Tx-in and Tx-out fail" addressValidation
+
+          -- && traceIfFalse "Deadline reached - no more contributions" (not deadlinepassed)
+
       Close -> 
-    -- traceIfFalse "wrong output datum" (correctOutputDatum d)             
+          traceIfFalse "UTXO being spend values are not matching based on Datum" correctInputValueClose &&
+          traceIfFalse "Target amount not reached" closeTargetAmountValid &&             
           traceIfFalse "Not signed by beneficiary" signedByBeneficiary
     -- -- traceIfFalse "Deadline not yet reached" deadlinepassed
     -- -- need to check that Value being paid to script with NFT does not have any other tokens
@@ -142,7 +146,38 @@ crowdValidator d r context =
 
       inputsAllResolved :: [Contexts.TxOut]
       inputsAllResolved = fmap Contexts.txInInfoResolved inputsAll  
-      
+
+
+------------------------------------- Addresses- get only the Script addresses and then validate - only 1 should exist in Tx-in and Tx-out
+--    get the addresses from TxOut  - these will be addresses from any Payments and Script address too
+      gettxOutAddressFromUTXO :: [Contexts.TxOut] -> [LedgerApiV2.Address]
+      gettxOutAddressFromUTXO [] = []
+      gettxOutAddressFromUTXO [ad] = [LedgerApiV2.txOutAddress ad]
+      gettxOutAddressFromUTXO (ad: ads) = (LedgerApiV2.txOutAddress ad) : (gettxOutAddressFromUTXO  ads)
+--    now get the Credentials from the Address
+      gettxOutCredentialsFromUTXO :: [LedgerApiV2.Address] -> [LedgerApiV2.Credential]
+      gettxOutCredentialsFromUTXO [] = []
+      gettxOutCredentialsFromUTXO [cr] = [LedgerApiV2.addressCredential cr]
+      gettxOutCredentialsFromUTXO (cr: crs) = (LedgerApiV2.addressCredential cr) : (gettxOutCredentialsFromUTXO  crs)
+--    now get the script Credentials from the credentials if its there. Ignore payment addresses 
+      gettxOutScriptCredentialsFromUTXO :: [LedgerApiV2.Credential] -> [LedgerApiV2.ValidatorHash]
+      gettxOutScriptCredentialsFromUTXO [] = []
+      gettxOutScriptCredentialsFromUTXO [(LedgerApiV2.ScriptCredential scr)] = [scr]
+      gettxOutScriptCredentialsFromUTXO [_] = []
+      gettxOutScriptCredentialsFromUTXO ((LedgerApiV2.ScriptCredential scr) : scrs) = (scr) : (gettxOutScriptCredentialsFromUTXO  scrs)
+      gettxOutScriptCredentialsFromUTXO (_ : scrs) = (gettxOutScriptCredentialsFromUTXO  scrs)
+
+      scriptAddressesTxIn :: [LedgerApiV2.ValidatorHash]
+      scriptAddressesTxIn = (gettxOutScriptCredentialsFromUTXO (gettxOutCredentialsFromUTXO (gettxOutAddressFromUTXO inputsAllResolved)))
+
+      scriptAddressesTxOut :: [LedgerApiV2.ValidatorHash]
+      scriptAddressesTxOut = (gettxOutScriptCredentialsFromUTXO (gettxOutCredentialsFromUTXO (gettxOutAddressFromUTXO outputsAll)))
+
+      addressValidation :: Bool
+      addressValidation = ( scriptAddressesTxIn == scriptAddressesTxOut ) && ( (length scriptAddressesTxOut) == 1 )
+
+
+------------------------------------- Datums
       getTxOutputDatumFromUTXO :: [Contexts.TxOut] -> [V2LedgerTx.OutputDatum]
       getTxOutputDatumFromUTXO [] = []
       getTxOutputDatumFromUTXO [iR] = [V2LedgerTx.txOutDatum iR]
@@ -203,8 +238,7 @@ crowdValidator d r context =
       maybeTargetAmountTxOut = getTargetAmountFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO outputsAll)))
 
 
-
---    Total Amount so Far
+------------------------------------- Total Amount so Far
       getActualTargetAmountSoFarFromDatum :: [Maybe Dat] -> Maybe Integer
       getActualTargetAmountSoFarFromDatum [(Just d)] = Just (actualtargetAmountsoFar d)
       getActualTargetAmountSoFarFromDatum _ = Nothing
@@ -441,7 +475,51 @@ crowdValidator d r context =
 
 
 
+--    Validation of Target amount reached - 
+--    1) we are taking the Script UTXO Ada Value (minus the NFT)
+--    2) We are taking the TargetAmount from the datum and convert to Ada Value.
+--    3) then validate if SCript Value GT then Target Amount.
+      -- findOwnInput :: ScriptContext -> Maybe TxInInfo
+      scriptTxIn :: Maybe Contexts.TxOut
+      scriptTxIn = fmap Contexts.txInInfoResolved (Contexts.findOwnInput context)
+      
+      scriptValue :: Maybe Ledger.Value
+      scriptValue = fmap Contexts.txOutValue scriptTxIn
 
+      adaScriptValue :: Maybe Ada.Ada
+      adaScriptValue = fmap Ada.fromValue scriptValue
+
+      onlyAdaScriptValue :: Maybe Ledger.Value
+      onlyAdaScriptValue = fmap Ada.toValue adaScriptValue
+
+      maybeTargetAmountScripTxIn :: Maybe Integer
+      maybeTargetAmountScripTxIn = case scriptTxIn of 
+                                     (Just ti) -> getTargetAmountFromDatum (getDatFromUTXODatum (getDatumFromUTXO (getTxOutputDatumFromUTXO [ti])))
+                                     Nothing -> Nothing
+
+      targetAmountScript :: Maybe Ada.Ada
+      targetAmountScript = fmap Ada.lovelaceOf maybeTargetAmountScripTxIn
+      targetAmountAsValue :: Maybe Ledger.Value
+      targetAmountAsValue = fmap Ada.toValue targetAmountScript
+
+      closeTargetAmountValid :: Bool
+      closeTargetAmountValid = case targetAmountAsValue of 
+                                 Just ta -> case onlyAdaScriptValue of 
+                                              Just as -> Value.geq as ta
+                                              Nothing -> False 
+                                 Nothing -> False
+      
+
+      checkCloseInputs :: [Ledger.Value] -> (Maybe Ledger.Value) -> Bool
+      checkCloseInputs [] (Nothing)= False
+      checkCloseInputs [txV] (Just jdt)= (txV == jdt)
+      checkCloseInputs (txV : txs) (Just jdt)= ((txV ==  jdt)) || (checkCloseInputs txs (Just jdt))
+      checkCloseInputs _ _  = False
+--    This validates 2 parameters to be equal 
+--             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
+--             3nd parameter - Values constructed based from Datum at the UTXO itself. 
+      correctInputValueClose :: Bool
+      correctInputValueClose = checkCloseInputs getAllValuesTxIns (totalValueDatumTxin )  
 
 
 --      Only one output allowed. We spend the UTXO with NFT and pay it back to the SCript with additional contribution updated Datum
@@ -521,6 +599,14 @@ minAda = Ada.toValue 2000000      -- this is LoveLaces
 
 firstNftUtxoValue :: LedgerApiV2.Value
 firstNftUtxoValue = minAda <> singleTonCF
+
+-- test - pluck one Ada from Value of token and Ada
+onlyAda :: Ada.Ada
+onlyAda = Ada.fromValue firstNftUtxoValue
+
+-- Convert the Ada back to Value.
+valueAda :: LedgerApiV2.Value
+valueAda = Ada.toValue onlyAda
 
 equalVal :: Bool
 equalVal = singleTon1 ==  singleTon2
@@ -629,21 +715,42 @@ cFRedeemContr1BuiltInData = (PlutusTx.toBuiltinData cFRedeemContributeRaw1)
 
 
       ------------------------------------------------------------ Address related
-addr1 :: BuiltinByteString
-addr1 = "43726f776446756e6441646472657373"  -- hex of "CrowdFundAddress"
+scripAddr1 :: BuiltinByteString
+--addr1 = "43726f776446756e6441646472657373"  -- hex of "CrowdFundAddress"
+scripAddr1 = "addr_test1wp02taqyn6rp38g4wqn7h5sxccgwkdzex9cegexxsny4qlczfn2al"    -- CrowdFund Address
+
+
+payAddr1 :: BuiltinByteString
+payAddr1 = "addr_test1vq8f02sr8nhwwckz22zumny59pch3uqmgkjctlgdfk5rs7sx52ldh"    -- Beneficiary Address
+
 
 addrStkCred :: Maybe Ledger.StakingCredential
 addrStkCred = Nothing
 
-valHash :: Ledger.ValidatorHash
-valHash = Ledger.ValidatorHash addr1
+scripValHash :: Ledger.ValidatorHash
+scripValHash = Ledger.ValidatorHash scripAddr1
+
+payValHash :: Ledger.PubKeyHash
+payValHash = Ledger.PubKeyHash payAddr1
+-- 0e97aa033ceee762c25285cdcc94287178f01b45a585fd0d4da8387a
 
 scrCred :: LedgerApiV2.Credential
-scrCred = LedgerApiV2.ScriptCredential valHash
+scrCred = LedgerApiV2.ScriptCredential scripValHash
+
+pubKeyCred :: LedgerApiV2.Credential
+pubKeyCred = LedgerApiV2.PubKeyCredential payValHash
+
+
 
 crAddress1 :: LedgerApiV2.Address
 crAddress1 = LedgerApiV2.Address { 
     LedgerApiV2.addressCredential = scrCred,
+    LedgerApiV2.addressStakingCredential = Nothing
+}
+
+pyAddress1 :: LedgerApiV2.Address
+pyAddress1 = LedgerApiV2.Address { 
+    LedgerApiV2.addressCredential = pubKeyCred,
     LedgerApiV2.addressStakingCredential = Nothing
 }
       
@@ -726,13 +833,14 @@ crTxOutContribution1Diff = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddres
 
 -- No datum - So this is like payment addr, to test other Tx-in also submitted at the script for Fees or collateral.
 crTxOutNoDatum :: V2LedgerTx.TxOut
-crTxOutNoDatum = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
+crTxOutNoDatum = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = pyAddress1,
              V2LedgerTx.txOutDatum  = (V2LedgerTx.NoOutputDatum),          -- cfDatumOutputDatum,   --  datumOutputDatumHash, 
              V2LedgerTx.txOutReferenceScript = Nothing,
              V2LedgerTx.txOutValue = minAda <> singleTon2     -- Actual CrowdFund token expected one.
 
 }
       
+
       ------------------------------------------------------ TX-INs
       
 txIn1 :: Contexts.TxInInfo
@@ -894,6 +1002,33 @@ simpleHash = V2UtilsScripts.validatorHash  validator
 simpleAddress :: Ledger.Address
 simpleAddress = Ledger.scriptHashAddress simpleHash
 
+
+
+-------------------------------------------------------------TEMP TESTS
+l_gettxOutAddressFromUTXO :: [Contexts.TxOut] -> [LedgerApiV2.Address]
+l_gettxOutAddressFromUTXO [] = []
+l_gettxOutAddressFromUTXO [ad] = [LedgerApiV2.txOutAddress ad]
+l_gettxOutAddressFromUTXO (ad: ads) = (LedgerApiV2.txOutAddress ad) : (l_gettxOutAddressFromUTXO  ads)
+--  l_now get the Credentials from the Address
+l_gettxOutCredentialsFromUTXO :: [LedgerApiV2.Address] -> [LedgerApiV2.Credential]
+l_gettxOutCredentialsFromUTXO [] = []
+l_gettxOutCredentialsFromUTXO [cr] = [LedgerApiV2.addressCredential cr]
+l_gettxOutCredentialsFromUTXO (cr: crs) = (LedgerApiV2.addressCredential cr) : (l_gettxOutCredentialsFromUTXO  crs)
+--  l_now get the script Credentials from the credentials if its there. Ignore payment addresses 
+l_gettxOutScriptCredentialsFromUTXO :: [LedgerApiV2.Credential] -> [LedgerApiV2.ValidatorHash]
+l_gettxOutScriptCredentialsFromUTXO [] = []
+l_gettxOutScriptCredentialsFromUTXO [(LedgerApiV2.ScriptCredential scr)] = [scr]
+l_gettxOutScriptCredentialsFromUTXO [_] = []
+l_gettxOutScriptCredentialsFromUTXO ((LedgerApiV2.ScriptCredential scr) : scrs) = (scr) : (l_gettxOutScriptCredentialsFromUTXO  scrs)
+l_gettxOutScriptCredentialsFromUTXO (_ : scrs) = (l_gettxOutScriptCredentialsFromUTXO  scrs)
+
+l_scriptAddressesTxIn :: [LedgerApiV2.ValidatorHash]
+l_scriptAddressesTxIn = (l_gettxOutScriptCredentialsFromUTXO (l_gettxOutCredentialsFromUTXO (l_gettxOutAddressFromUTXO l_inputsAllResolved)))
+l_scriptAddressesTxOut :: [LedgerApiV2.ValidatorHash]
+l_scriptAddressesTxOut = (l_gettxOutScriptCredentialsFromUTXO (l_gettxOutCredentialsFromUTXO (l_gettxOutAddressFromUTXO ([crTxOutContribution1, crTxOutNoDatum]))))
+
+l_inputsAllResolved :: [Contexts.TxOut]
+l_inputsAllResolved = fmap Contexts.txInInfoResolved ([txIn1, txIn2])
 
 
 
