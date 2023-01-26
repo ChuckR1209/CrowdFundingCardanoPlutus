@@ -61,14 +61,17 @@ convertToPubKeyHash b = Ledger.PaymentPubKeyHash (Ledger.PubKeyHash $ decodeHex 
 --------------------------------------------------------------------
 
 targetAmount :: Integer
-targetAmount = 5000000000   -- 5000 Ada
+targetAmount = 50000000   -- 50 Ada
 
 beneficiaryHash :: B.ByteString
-beneficiaryHash = "dbbab47cf610921db8e266c3747cd393db6f9d4b7eb8e348ddeb3971"  -- forPlutus wallet
+beneficiaryHash = "0e97aa033ceee762c25285cdcc94287178f01b45a585fd0d4da8387a"  -- Beneficiary wallet
 
 
 contributorHash :: B.ByteString
 contributorHash = "8c573e818f35a8fa8a693933c396561b0622a88bbf34952c4d572cd7"  -- Contributor wallet
+
+collateralHash :: B.ByteString
+collateralHash = "0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a"  -- Collaterl wallet - will be contribute
 
 crowdDeadline :: Ledger.POSIXTime
 crowdDeadline = 1671159023000
@@ -79,10 +82,49 @@ datumCrowd = OnChain.Dat {
                            , OnChain.deadline =crowdDeadline
     -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
                            -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
-                           ,    OnChain.aCurrency = "29274fbae90423d1244e88257b685c9d2fefef4b50e75029e1a10562"
+                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
                            , OnChain.aToken = "MyCrowdFund"
                            , OnChain.targetAmount = targetAmount
+                           , OnChain.actualtargetAmountsoFar = 2000000
                            , OnChain.contributorsMap = []}
+
+datumCrowdOut :: OnChain.Dat
+datumCrowdOut = OnChain.Dat { 
+                             OnChain.beneficiary = convertToPubKeyHash beneficiaryHash
+                           , OnChain.deadline =crowdDeadline
+    -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
+                           -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
+                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
+                           , OnChain.aToken = "MyCrowdFund"
+                           , OnChain.targetAmount = targetAmount
+                           , OnChain.actualtargetAmountsoFar = 32000000
+                           , OnChain.contributorsMap = [(convertToPubKeyHash contributorHash,30000000)]}
+
+datumCrowdOut2 :: OnChain.Dat
+datumCrowdOut2 = OnChain.Dat { 
+                             OnChain.beneficiary = convertToPubKeyHash beneficiaryHash
+                           , OnChain.deadline =crowdDeadline
+    -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
+                           -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
+                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
+                           , OnChain.aToken = "MyCrowdFund"
+                           , OnChain.targetAmount = targetAmount
+                           , OnChain.actualtargetAmountsoFar = 62000000
+                           , OnChain.contributorsMap = [(convertToPubKeyHash contributorHash,30000000), (convertToPubKeyHash collateralHash,30000000)]}
+
+
+
+datumCrowdOut3 :: OnChain.Dat
+datumCrowdOut3 = OnChain.Dat { 
+                             OnChain.beneficiary = convertToPubKeyHash beneficiaryHash
+                           , OnChain.deadline =crowdDeadline
+    -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
+                           -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
+                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
+                           , OnChain.aToken = "MyCrowdFund"
+                           , OnChain.targetAmount = targetAmount
+                           , OnChain.actualtargetAmountsoFar = 62000000
+                           , OnChain.contributorsMap = [(convertToPubKeyHash collateralHash,60000000)]}
 
 
 
@@ -91,11 +133,16 @@ datumCrowd = OnChain.Dat {
 
 
 contributorAmount :: Integer
-contributorAmount = 2000000   -- 2 Ada contribution
+contributorAmount = 300000000   -- 60 Ada contribution
 
 redeemCrowdContribute :: OnChain.Redeem
 redeemCrowdContribute = OnChain.Contribute {  
                              OnChain.contribution = (convertToPubKeyHash contributorHash, contributorAmount)
+                            }
+
+redeemCrowdContributeAsCollateral :: OnChain.Redeem
+redeemCrowdContributeAsCollateral = OnChain.Contribute {  
+                             OnChain.contribution = (convertToPubKeyHash collateralHash, contributorAmount)
                             }
 
 redeemCrowdClose :: OnChain.Redeem
@@ -106,6 +153,7 @@ main :: IO()
 main = do
     writeDatumUnit
     writeCrowdDatum
+    writeCrowdDatumOut
     writeCrowdRedeemClose
     writeCrowdRedeemContribute
     _ <- writeCrowdFunding
@@ -138,11 +186,36 @@ writeCrowdDatum =
     in writeJSON "src/CrowdFunding/Deploy/crowdFunding-datum.json" d
 
 
+writeCrowdDatumOut :: IO ()
+writeCrowdDatumOut = 
+    let crowd = datumCrowdOut
+        d = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFunding-datumOut.json" d
+
+writeCrowdDatumOut2 :: IO ()
+writeCrowdDatumOut2 = 
+    let crowd = datumCrowdOut2
+        d = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFunding-datumOut2.json" d
+
+writeCrowdDatumOut3 :: IO ()
+writeCrowdDatumOut3 = 
+    let crowd = datumCrowdOut3
+        d = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFunding-datumOut3.json" d
+
 writeCrowdRedeemContribute :: IO ()
 writeCrowdRedeemContribute = 
     let crowd = redeemCrowdContribute
         r = PlutusTx.toBuiltinData crowd
     in writeJSON "src/CrowdFunding/Deploy/crowdFundingContribute-redeem.json" r
+
+
+writeCrowdRedeemContribute2 :: IO ()
+writeCrowdRedeemContribute2 = 
+    let crowd = redeemCrowdContributeAsCollateral
+        r = PlutusTx.toBuiltinData crowd
+    in writeJSON "src/CrowdFunding/Deploy/crowdFundingContribute-redeem2.json" r
 
 writeCrowdRedeemClose :: IO ()
 writeCrowdRedeemClose = 

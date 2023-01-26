@@ -27,12 +27,12 @@ $CARDANO_CLI transaction build \
 --tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND} \
 --change-address=${FROM_WALLET_ADDRESS} \
 --testnet-magic ${TESTNET_MAGIC} \
---out-file $WORK/transactions/tx.draft \
+--out-file $BASE/tx/tx.draft \
 --babbage-era
 
 $CARDANO_CLI transaction sign \
---tx-body-file $WORK/transactions/tx.draft \
+--tx-body-file $BASE/tx/tx.draft \
 --signing-key-file $BASE/.priv/Wallets/${FROM_WALLET_NAME}/${FROM_WALLET_NAME}.skey \
---out-file $WORK/transactions/tx.signed
+--out-file $BASE/tx/tx.signed
 
-$CARDANO_CLI transaction submit --tx-file $WORK/transactions/tx.signed --testnet-magic $TESTNET_MAGIC
+$CARDANO_CLI transaction submit --tx-file $BASE/tx/tx.signed --testnet-magic $TESTNET_MAGIC

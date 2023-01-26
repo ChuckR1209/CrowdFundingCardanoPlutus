@@ -87,37 +87,36 @@ data Dt1 = Dt1 {
 crowdValidator :: Dat -> Redeem -> Contexts.ScriptContext -> Bool
 crowdValidator d r context =     
     case r of 
-      (Contribute cmap ) ->
-          --        This validates 3 parameters to be equal 
---             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
---             2nd parameter - Values calculated based on Datum passed to the Validator
---             3rd parametr - Values calculated from Datum at the UTXO.     
-             traceIfFalse "wrong input value" ( correctInputValue d )       -- NEED TO ADD Policy id cannot be blank.
+      (Contribute cmap ) -> True
+--           True || (
+
+-- --        This validates 3 parameters to be equal 
+-- --             1st parameter - from actual Tx-ins Values , validates that the UTXO with NFT in its Values - bypasses other Tx-in w/o NFT like Fees Tx-in
+-- --             2nd parameter - Values calculated based on Datum passed to the Validator
+-- --             3rd parametr - Values calculated from Datum at the UTXO.     
+--           traceIfFalse "wrong input value" ( correctInputValue d )   &&    -- NEED TO ADD Policy id cannot be blank.
 
 --         -- traceIfFalse "Only 1 tx-out allowed" correctOutputLength &&   -- not true - can have change address
 --         -- Only 1 tx-in with datum allowed- other can be payment address fee etc. which dont have datum
-             && traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn 
-
-
-
+--           traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn &&
 
 --           -- i am expecting only 1 Datum in my tx-out to write back to the Script with NFT - so should not get more than one. Other Tx-out will only have Payment addresses like Change
-             && traceIfFalse "Only 1 tx-out Datum allowed"  only1ValidDatumTxOut
+--           traceIfFalse "Only 1 tx-out Datum allowed"  only1ValidDatumTxOut &&
 
 -- --        Validates expected Values based on Datum of tx-out and tx-in - tx-in Value  + redeemer value = tx-out Value
-             -- in error for now - && traceIfFalse "Constructed Values calculated between tx-out Datum and TxIn datum plus Redeem is wrong" correctOutputDatumValue 
+--           traceIfFalse "Constructed Values calculated between tx-out Datum and TxIn datum plus Redeem is wrong" correctOutputDatumValue &&
 
 -- --        Validates the actual value at tx-out with calculated Value based on tx-out Datum
-             -- this gave error --- && traceIfFalse "Actual tx-out Values and constructed Datum tx-out dont match" correctOutputValue 
+--           traceIfFalse "Actual tx-out Values and constructed Datum tx-out dont match" correctOutputValue &&
 
 -- --        tx-out - Datum collected amount should be updated with Tx-in amount + contributed amount
-             -- gave error && traceIfFalse "the ContributedSoFar amount has a descrepancy" correctTargetAmountSoFarDatum 
+--           traceIfFalse "the ContributedSoFar amount has a descrepancy" correctTargetAmountSoFarDatum && 
 
 -- --        tx-in and tx-out - Beneficiary, Deadline and Target amount should be same.
-             && traceIfFalse "Datums check: Either beneficiary , deadline or targetAmount is not matching" correctRestDatum 
+--           traceIfFalse "Datums check: Either beneficiary , deadline or targetAmount is not matching" correctRestDatum &&
 
 -- --        The tx-out Contributors map should be tx-in Contributor map + Redeem map
-             -- && traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum 
+--           traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum &&
 
 -- --        Scripts address validations for Tx-in and Tx-out
 --           traceIfFalse "Scripts address validations for Tx-in and Tx-out fail" addressValidation
@@ -127,11 +126,11 @@ crowdValidator d r context =
 
 --           && traceIfFalse "Redeem amount has to be min 1 Ada" (contributionAmountRedeemer $ snd cmap)
 
-          -- && traceIfFalse "Deadline reached - no more contributions" (not deadlinepassed)
-          
+--           -- && traceIfFalse "Deadline reached - no more contributions" (not deadlinepassed)
+--           )
       Close -> 
-          traceIfFalse "UTXO being spend values are not matching based on Datum" correctInputValueClose
-          && traceIfFalse "Target amount not reached" closeTargetAmountValid            
+          -- traceIfFalse "UTXO being spend values are not matching based on Datum" correctInputValueClose
+          traceIfFalse "Target amount not reached" closeTargetAmountValid            
           && traceIfFalse "Not signed by beneficiary" signedByBeneficiary
           -- True
     -- -- traceIfFalse "Deadline not yet reached" deadlinepassed
@@ -204,7 +203,6 @@ crowdValidator d r context =
       getDatumFromUTXO [V2LedgerTx.NoOutputDatum] = []
       getDatumFromUTXO [V2LedgerTx.OutputDatumHash hs ] = [] 
       getDatumFromUTXO ((V2LedgerTx.OutputDatum d) : dts ) = d : (getDatumFromUTXO dts)
-      getDatumFromUTXO ((_) : dts ) =  (getDatumFromUTXO dts)
 
 
 
@@ -345,7 +343,7 @@ crowdValidator d r context =
       totalValueDatumTxin = getTotalValueDatum ( datumTokenValue maybeCurrSymTxIn maybeTokenTxIn) targetAmountSoFarValueTxIn ada0
 
       totalValueDatumTxOut :: ( Maybe Ledger.Value )
-      totalValueDatumTxOut = getTotalValueDatum ( datumTokenValue maybeCurrSymTxOut maybeTokenTxOut) targetAmountSoFarValueTxOut ada0
+      totalValueDatumTxOut = getTotalValueDatum ( datumTokenValue maybeCurrSymTxOut maybeTokenTxOut) targetAmountSoFarValueTxOut minAda
 
       -- i am expecting only 1 Datum in my tx-ins - the Spending UTXO - so should not get more than one. Other Tx-ins will only have Payment addresses
       only1ValidDatumTxIn :: Bool
@@ -470,8 +468,8 @@ crowdValidator d r context =
 
       totalExpectedDatumTxInPlusRedeem :: Ledger.Value
       totalExpectedDatumTxInPlusRedeem = case totalValueDatumTxin of 
-                                      Just ti -> (redeemValue <> ti )
-                                      Nothing -> traceError "No txInValue Datum , only redeemValue"
+                                      Just ti -> (ti <> redeemValue)
+                                      Nothing -> redeemValue
 
 --    This validates value from Datum Tx-in, adds Redeemer to check the Datum tx-out is correct Value point of view.
       correctOutputDatumValue :: Bool

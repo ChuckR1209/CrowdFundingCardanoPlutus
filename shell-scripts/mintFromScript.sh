@@ -17,7 +17,7 @@ LOVELACE_TO_SEND=2000000
 TO_WALLET_NAME=forPlutus
 COLLATERAL=Collateral
 TOKEN_NAME=MyCrowdFund
-TOKEN_QUANTITY=1
+TOKEN_QUANTITY=10
 REDEEMER_FILE=redeemer-mint.json
 
 # Collateral
@@ -91,7 +91,7 @@ esac
 # echo "Script name to spend from = ${SCRIPT_NAME}"
 # echo "From Wallet name = ${FROM_WALLET}"    # if needed.
 
-#SCRIPT_FILE=$WORK/plutus-scripts/${SCRIPT_NAME}.plutus 
+#SCRIPT_FILE=$BASE/plutus-scripts/${SCRIPT_NAME}.plutus 
 SCRIPT_FILE=$BASE/plutus-scripts/${SCRIPT_NAME}.plutus 
 SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $SCRIPT_FILE --testnet-magic $TESTNET_MAGIC)
 mkdir -p $BASE/.priv/Wallets/${SCRIPT_NAME}
@@ -193,7 +193,7 @@ build=($CARDANO_CLI transaction build \
 #--tx-in ${COLLATERAL_TX} \
 ${REQUIRED_TX_IN_ARRAY} \
 --tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}" \
---change-address=${FEE_ADDR} \
+--change-address=${TO_WALLET_ADDRESS} \
 --mint="$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}" \
 --mint-script-file ${SCRIPT_FILE} \
 --mint-redeemer-file $BASE/plutus-scripts/${REDEEMER_FILE} \

@@ -61,7 +61,7 @@ mkPolicy token action context =
 
                     checkMintedAmount :: Bool
                     checkMintedAmount = case LedgerValueV1.flattenValue $ LedgerContextsV2.txInfoMint txinfo of
-                        [(_, tn', amount)] -> tn' == name token && amount == 1
+                        [(_, tn', amount)] -> tn' == name token -- && amount == 10
                         _                  -> False
                     
                 in

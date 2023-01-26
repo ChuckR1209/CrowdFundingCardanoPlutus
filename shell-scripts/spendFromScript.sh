@@ -12,10 +12,12 @@ SIGNING_KEY_FILE_ARRAY=()
 
 # Set this for this Current run so for multiple runs no issues
 SCRIPT_NAME=CrowdFunding
-TO_WALLET_NAME=forPlutus
+TO_WALLET_NAME=Contributor
 COLLATERAL=Collateral
-DATUM_HASH_FILE=CF-datum
-REDEEMER_FILE=CFC-redeem
+DATUM_HASH_FILE=crowdFunding-datum
+REDEEMER_FILE=crowdFundingContribute-redeem
+WRITING_BACK_TO_SCRIPT=Y
+
 
 SIGNER1=0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a
 SIGNER_FILE1=$BASE/.priv/Wallets/Collateral/Collateral.skey
@@ -32,13 +34,28 @@ else
   SIGNING_KEY_FILE_ARRAY+=' '
 fi
 
+SIGNER2=8c573e818f35a8fa8a693933c396561b0622a88bbf34952c4d572cd7
+SIGNER_FILE2=$BASE/.priv/Wallets/Contributor/Contributor.skey
+
+if [ -z ${SIGNER2} ];
+then
+  echo "no pre-set signers provided"
+else
+  # REQUIRED_SIGNER_ARRAY+='--required-signer-hash '
+  # REQUIRED_SIGNER_ARRAY+=$SIGNER2
+  # REQUIRED_SIGNER_ARRAY+=' '
+  SIGNING_KEY_FILE_ARRAY+='--required-signer '
+  SIGNING_KEY_FILE_ARRAY+=$SIGNER_FILE2
+  SIGNING_KEY_FILE_ARRAY+=' '
+fi
+
 
 if [ -z ${SCRIPT_NAME} ];
 then
   read -p 'Script name to spend from: ' SCRIPT_NAME
 fi
 
-SCRIPT_FILE=$WORK/plutus-scripts/${SCRIPT_NAME}.plutus 
+SCRIPT_FILE=$BASE/plutus-scripts/${SCRIPT_NAME}.plutus 
 SCRIPT_ADDRESS=$($CARDANO_CLI address build --payment-script-file $SCRIPT_FILE --testnet-magic $TESTNET_MAGIC)
 mkdir -p $BASE/.priv/Wallets/${SCRIPT_NAME}
 echo $SCRIPT_ADDRESS > $BASE/.priv/Wallets/${SCRIPT_NAME}/${SCRIPT_NAME}.addr
@@ -63,19 +80,43 @@ SCRIPT_UTXO=$SELECTED_UTXO
 PAYMENT=$SELECTED_UTXO_LOVELACE
 UTXO_POLICY_ID=${SELECTED_UTXO_POLICYID}
 
+if [ -z ${WRITING_BACK_TO_SCRIPT} ];
+then
+    echo " not writing back to script"
+else
+    #echo "writing back to script - Also Lovelace to add"
+    read -p 'writing back to script - Also Lovelace to add? [Y/N]: ' inputLl
+    case $inputLl in
+      [yY][eE][sS]|[yY])
+        echo "You say Yes"
+        read -p 'Input more lovelace to send: ' ADDL_LOVELACE
+        PAYMENT=`expr $SELECTED_UTXO_LOVELACE + $ADDL_LOVELACE`
+        ;;
+      [nN][oO]|[nN])
+        echo "You say No"
+        break
+        ;;
+      *)
+        echo "Invalid input..."
+        exit 1
+        ;;
+    esac
+fi
+
+
 # this will also add the Token in the script address not just LoveLace
 if [ -z ${UTXO_POLICY_ID} ];
 then 
     echo "no token to send"    
-    TX_OUT=${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}
+    TX_OUT=${SCRIPT_ADDRESS}+${PAYMENT}
 else 
     #PAYMENT=${PAYMENT}+'"'1 ${UTXO_POLICY_ID}'"'
     Q1="\"1"
     Q2=" "
     #PAYMENT=${PAYMENT}+$Q1" "${UTXO_POLICY_ID}'"'
-    TX_OUT=${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}+${Q1}" "${UTXO_POLICY_ID}'"'
+    TX_OUT=${SCRIPT_ADDRESS}+${PAYMENT}+${Q1}" "${UTXO_POLICY_ID}'"'
 fi
-echo "Your tx-out payment from script is : ${PAYMENT}"
+echo "Your tx-out payment to/from script is : ${PAYMENT}"
 
 echo ${TX_OUT}
 
@@ -257,7 +298,8 @@ case $input in
         echo "Token is there"
         echo ""
         # Token to spend is there
-        build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} --change-address=${FEE_ADDR} --tx-in ${SCRIPT_UTXO} --tx-in-script-file ${SCRIPT_FILE} --tx-in-datum-file $BASE/tx/${DATUM_HASH_FILE} --tx-in-redeemer-file $BASE/tx/${REDEEMER_FILE} --tx-in ${COLLATERAL_TX} --tx-in-collateral=${COLLATERAL_TX} --tx-out ${TO_WALLET_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" ${TO_WALLET_NAME_ARRAY} ${SIGNING_KEY_FILE_ARRAY} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
+        #build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} --change-address=${FEE_ADDR} --tx-in ${SCRIPT_UTXO} --tx-in-script-file ${SCRIPT_FILE} --tx-in-datum-file $BASE/tx/${DATUM_HASH_FILE} --tx-in-redeemer-file $BASE/tx/${REDEEMER_FILE} --tx-in ${COLLATERAL_TX} --tx-in-collateral=${COLLATERAL_TX} --tx-out ${TO_WALLET_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" ${TO_WALLET_NAME_ARRAY} ${SIGNING_KEY_FILE_ARRAY} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
+        build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC ${INVALID_BEFORE_ARRAY} ${INVALID_HEREAFTER_ARRAY} --change-address=${FEE_ADDR} --tx-in ${SCRIPT_UTXO} --tx-in-script-file ${SCRIPT_FILE} --tx-in-datum-file $BASE/tx/${DATUM_HASH_FILE} --tx-in-redeemer-file $BASE/tx/${REDEEMER_FILE} --tx-in ${COLLATERAL_TX} --tx-in-collateral=${COLLATERAL_TX} --tx-out ${SCRIPT_ADDRESS}+${SELECTED_UTXO_LOVELACE}+\"1 ${UTXO_POLICY_ID}\" ${TO_WALLET_NAME_ARRAY} ${SIGNING_KEY_FILE_ARRAY} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
       fi
       ;;
     *)
@@ -284,12 +326,12 @@ case $input in
             echo "You say Yes"
 
             $CARDANO_CLI transaction sign \
-            --tx-body-file $WORK/transactions/tx.draft \
+            --tx-body-file $BASE/tx/tx.draft \
             ${SIGNING_KEY_FILE_ARRAY} \
             --testnet-magic $TESTNET_MAGIC \
-            --out-file $WORK/transactions/tx.signed \
+            --out-file $BASE/tx/tx.signed \
 
-            $CARDANO_CLI transaction submit --tx-file $WORK/transactions/tx.signed --testnet-magic $TESTNET_MAGIC
+            $CARDANO_CLI transaction submit --tx-file $BASE/tx/tx.signed --testnet-magic $TESTNET_MAGIC
 
             ;;
       [nN][oO]|[nN])

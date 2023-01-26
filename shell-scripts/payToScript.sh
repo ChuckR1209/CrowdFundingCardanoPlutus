@@ -11,16 +11,36 @@ set -o pipefail
 # set -x
 
 source helpers.sh
-getInputTx $1
+
+# Set this for this Current run so for multiple runs no issues
+SCRIPT_NAME=CrowdFunding
+LOVELACE_TO_SEND=2000000  #-- 2 Ada initial
+DATUM_HASH_FILE=crowdFunding-datum
+SELECTED_WALLET_NAME=forPlutus
+
+if [ -z ${SELECTED_WALLET_NAME} ];
+then
+    getInputTx $1
+else
+    getInputTx $SELECTED_WALLET_NAME
+fi
+
+
+
 FROM_UTXO=${SELECTED_UTXO}
 FROM_WALLET_NAME=${SELECTED_WALLET_NAME}
 FROM_WALLET_ADDRESS=${SELECTED_WALLET_ADDR}
 FROM_BALANCE=${SELECTED_UTXO_LOVELACE}
 UTXO_POLICY_ID=${SELECTED_UTXO_POLICYID}
 
-read -p 'Lovelace to send: ' LOVELACE_TO_SEND
-
-read -p 'Receiving script name: ' SCRIPT_NAME
+if [ -z ${LOVELACE_TO_SEND} ];
+then
+    read -p 'Lovelace to send: ' LOVELACE_TO_SEND
+fi
+if [ -z ${SCRIPT_NAME} ];
+then
+    read -p 'Receiving script name: ' SCRIPT_NAME
+fi 
 
 echo $SCRIPT_NAME
 
@@ -34,7 +54,10 @@ else
     SCRIPT_ADDRESS=$SCRIPT_NAME
 fi
 
-read -p 'Datum hash file name: ' DATUM_HASH_FILE
+if [ -z ${DATUM_HASH_FILE} ];
+then
+    read -p 'Datum hash file name: ' DATUM_HASH_FILE
+fi
 
 DATUM_HASH_FILE=${DATUM_HASH_FILE}.json
 
@@ -48,7 +71,7 @@ else
     case $POL_INPUT in 
         [yY][eE][sS]|[yY])
         echo "You say Yes"
-        TX_OUT=${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND}+'"'1 ${UTXO_POLICY_ID}'"'
+        TX_OUT="${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND}+\"1 ${UTXO_POLICY_ID}\""
         ;;
         [nN][oO]|[nN])
             echo "You say No"
@@ -62,17 +85,19 @@ echo "Your tx-out is : ${TX_OUT}"
 
 echo "Your from UTXO is : ${FROM_UTXO}"
 
-build=($CARDANO_CLI transaction build \
---babbage-era \
---cardano-mode \
---testnet-magic $TESTNET_MAGIC \
---tx-in ${FROM_UTXO} \
---tx-out ${TX_OUT} \
-#--tx-out addr_test1wp02taqyn6rp38g4wqn7h5sxccgwkdzex9cegexxsny4qlczfn2al+2000000+"1 d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.4d7943726f776446756e64" \
---tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} \
---change-address=${FROM_WALLET_ADDRESS} \
---protocol-params-file $BASE/tx/pparams.json \
---out-file $BASE/tx/tx.draft)
+# build=($CARDANO_CLI transaction build \
+# --babbage-era \
+# --cardano-mode \
+# --testnet-magic $TESTNET_MAGIC \
+# --tx-in ${FROM_UTXO} \
+# --tx-out ${TX_OUT} \
+# #--tx-out addr_test1wp02taqyn6rp38g4wqn7h5sxccgwkdzex9cegexxsny4qlczfn2al+2000000+"1 d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.4d7943726f776446756e64" \
+# --tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} \
+# --change-address=${FROM_WALLET_ADDRESS} \
+# --protocol-params-file $BASE/tx/pparams.json \
+# --out-file $BASE/tx/tx.draft)
+
+build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC --tx-in ${FROM_UTXO} --tx-out ${TX_OUT} --tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} --change-address=${FROM_WALLET_ADDRESS} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
 #--babbage-era
 # --tx-out ${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND} \
 #--testnet-magic ${TESTNET_MAGIC}  \

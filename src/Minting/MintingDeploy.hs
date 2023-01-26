@@ -35,7 +35,7 @@ tokenName = "MyCrowdFund"
 
 utxo :: String 
 -- utxo = "f3db80d707e9df4bb6edf9b267839e0953474fd006e76e8ddeb125d057599884#0"
-utxo = "134dd74515242fdb6a1e98e8db24de864e52d41cb63dd7117d08cf81c2b10537#1"   -- utxo at the forPlutus wallet
+utxo = "c3b021eed125cbfa9876c10e30d9d8a16e44c1b4dcf7031a5aabb1dbbc391829#2"   -- utxo at the forPlutus wallet
 parameters :: OnChain.TokenParam
 parameters = OnChain.TokenParam
     {
