@@ -133,7 +133,7 @@ datumCrowdOut3 = OnChain.Dat {
 
 
 contributorAmount :: Integer
-contributorAmount = 300000000   -- 60 Ada contribution
+contributorAmount = 30000000   -- 30 Ada contribution
 
 redeemCrowdContribute :: OnChain.Redeem
 redeemCrowdContribute = OnChain.Contribute {  
@@ -154,8 +154,10 @@ main = do
     writeDatumUnit
     writeCrowdDatum
     writeCrowdDatumOut
+    writeCrowdDatumOut2
     writeCrowdRedeemClose
     writeCrowdRedeemContribute
+    writeCrowdRedeemContribute2
     _ <- writeCrowdFunding
 
 
