@@ -17,6 +17,7 @@ SCRIPT_NAME=CrowdFunding
 LOVELACE_TO_SEND=2000000  #-- 2 Ada initial
 DATUM_HASH_FILE=crowdFunding-datum
 SELECTED_WALLET_NAME=forPlutus
+TOKEN_QUANTITY_SCRIPT=1
 
 if [ -z ${SELECTED_WALLET_NAME} ];
 then
@@ -31,7 +32,13 @@ FROM_UTXO=${SELECTED_UTXO}
 FROM_WALLET_NAME=${SELECTED_WALLET_NAME}
 FROM_WALLET_ADDRESS=${SELECTED_WALLET_ADDR}
 FROM_BALANCE=${SELECTED_UTXO_LOVELACE}
+RETURN_BALANCE=`expr $FROM_BALANCE - 4000000`   # we are contributing 2 Ada + fees
 UTXO_POLICY_ID=${SELECTED_UTXO_POLICYID}
+UTXO_TOKEN_NAME_HEX=${SELECTED_UTXO_TOKEN_NAME_HEX}
+#TOKENS_TO_SEND_BACK=${SELECTED_UTXO_TOKENS}-1
+TOKENS_TO_SEND_BACK=`expr $SELECTED_UTXO_TOKENS - 1`
+
+
 
 if [ -z ${LOVELACE_TO_SEND} ];
 then
@@ -81,7 +88,7 @@ fi
 echo "Your tx-out is : ${TX_OUT}"
 
 # FROM_TOKENS=${SELECTED_UTXO_TOKENS}
-# --tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY ${POLICY_ID}.${TOKEN_NAME_HEX}" \      -- need to use this to build it.
+# --tx-out ${TO_WALLET_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY ${POLICY_ID}.${UTXO_TOKEN_NAME_HEX}" \      -- need to use this to build it.
 
 echo "Your from UTXO is : ${FROM_UTXO}"
 
@@ -90,14 +97,41 @@ echo "Your from UTXO is : ${FROM_UTXO}"
 # --cardano-mode \
 # --testnet-magic $TESTNET_MAGIC \
 # --tx-in ${FROM_UTXO} \
-# --tx-out ${TX_OUT} \
-# #--tx-out addr_test1wp02taqyn6rp38g4wqn7h5sxccgwkdzex9cegexxsny4qlczfn2al+2000000+"1 d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be.4d7943726f776446756e64" \
+# --tx-out ${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY ${UTXO_POLICY_ID}.${UTXO_TOKEN_NAME_HEX}" \
 # --tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} \
 # --change-address=${FROM_WALLET_ADDRESS} \
 # --protocol-params-file $BASE/tx/pparams.json \
 # --out-file $BASE/tx/tx.draft)
 
-build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC --tx-in ${FROM_UTXO} --tx-out ${TX_OUT} --tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} --change-address=${FROM_WALLET_ADDRESS} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
+
+if [ $TOKENS_TO_SEND_BACK -gt 0 ]
+then
+  build=($CARDANO_CLI transaction build \
+  --babbage-era \
+  --cardano-mode \
+  --testnet-magic $TESTNET_MAGIC \
+  --tx-in ${FROM_UTXO} \
+  --tx-out ${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY_SCRIPT ${UTXO_POLICY_ID}.${UTXO_TOKEN_NAME_HEX}" \
+  --tx-out-inline-datum-file $BASE/plutus-scripts/${DATUM_HASH_FILE} \
+  --tx-out ${FROM_WALLET_ADDRESS}+${RETURN_BALANCE}+"$TOKENS_TO_SEND_BACK ${UTXO_POLICY_ID}.${UTXO_TOKEN_NAME_HEX}" \
+  --change-address=${FROM_WALLET_ADDRESS} \
+  --protocol-params-file $BASE/tx/pparams.json \
+  --out-file $BASE/tx/tx.draft)
+else
+  build=($CARDANO_CLI transaction build \
+  --babbage-era \
+  --cardano-mode \
+  --testnet-magic $TESTNET_MAGIC \
+  --tx-in ${FROM_UTXO} \
+  --tx-out ${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND}+"$TOKEN_QUANTITY_SCRIPT ${UTXO_POLICY_ID}.${UTXO_TOKEN_NAME_HEX}" \
+  --tx-out-inline-datum-file $BASE/plutus-scripts/${DATUM_HASH_FILE} \
+  --change-address=${FROM_WALLET_ADDRESS} \
+  --protocol-params-file $BASE/tx/pparams.json \
+  --out-file $BASE/tx/tx.draft)
+fi
+
+
+#build=("$CARDANO_CLI transaction build --babbage-era --cardano-mode --testnet-magic $TESTNET_MAGIC --tx-in ${FROM_UTXO} --tx-out ${TX_OUT} --tx-out-datum-hash-file $BASE/plutus-scripts/${DATUM_HASH_FILE} --change-address=${FROM_WALLET_ADDRESS} --protocol-params-file $BASE/tx/pparams.json --out-file $BASE/tx/tx.draft")
 #--babbage-era
 # --tx-out ${SCRIPT_ADDRESS}+${LOVELACE_TO_SEND} \
 #--testnet-magic ${TESTNET_MAGIC}  \

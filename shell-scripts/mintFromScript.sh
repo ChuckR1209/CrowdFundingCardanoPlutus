@@ -13,7 +13,7 @@ SIGNING_KEY_FILE_ARRAY=()
 # Input for this run only 
 SCRIPT_NAME=MintBurn
 UTXOWALLET=forPlutus
-LOVELACE_TO_SEND=2000000
+LOVELACE_TO_SEND=12000000    # send more than min 2Ada otherwise issues in PayToScript
 TO_WALLET_NAME=forPlutus
 COLLATERAL=Collateral
 TOKEN_NAME=MyCrowdFund

@@ -136,10 +136,38 @@
 #     ssh web.${i}.domain.com 'echo "<img src=beacon.gif?cluster='${i}'>" >> /var/www/index.html'
 # done
 
-USER_UID="$1"
-echo "generate_token(\"$USER_UID\")"
-echo "generate_token('"'$USER_UID'"')"]
-Q1=("ex \"1 asdfaf")
-echo "$Q1"
-Q2=$Q1"afdfd"
-echo $Q2
+# USER_UID="$1"
+# echo "generate_token(\"$USER_UID\")"
+# echo "generate_token('"'$USER_UID'"')"]
+# Q1=("ex \"1 asdfaf")
+# echo "$Q1"
+# Q2=$Q1"afdfd"
+# echo $Q2
+
+# TX_ROW="12fd13deadc8248eac08dc9ea782fff58350abf37a06abad36bbb28cdbff0989     0        2000000 lovelace + 10 b7047182a00354f8c4cd7b01c2faab230e01d2f33a6dcfd0c781f7ec.4d7943726f776446756e64 + TxOutDatumNone"
+# SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $1 }')#$(echo $TX_ROW | awk '{ print $2 }')"
+# SELECTED_UTXO_LOVELACE=$(echo $TX_ROW | awk '{ print $3 }')
+# SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk '{ print $6 }')
+# SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $1}')
+# SELECTED_UTXO_TOKEN_NAME_HEX=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $2}')
+# TOKENS_TO_SEND_BACK=$(expr $SELECTED_UTXO_TOKENS - 1)
+# echo $SELECTED_UTXO
+# echo $SELECTED_UTXO_LOVELACE
+# echo $SELECTED_UTXO_TOKENS
+# echo $SELECTED_UTXO_POLICYID
+# echo $SELECTED_UTXO_TOKEN_NAME_HEX
+# echo $TOKENS_TO_SEND_BACK
+
+# source helpers.sh
+# TO_WALLET_NAME=Contributor 
+# TMPHASH=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.pubKeyHash)
+# echo " temp hash = $TMPHASH"
+
+SELECTED_UTXO_TOKENS=9
+TOKENS_TO_SEND_BACK=`expr $SELECTED_UTXO_TOKENS - 1`
+if [ $TOKENS_TO_SEND_BACK -gt 0 ]
+then
+  echo $TOKENS_TO_SEND_BACK
+else 
+  echo "Zero tokens"
+fi

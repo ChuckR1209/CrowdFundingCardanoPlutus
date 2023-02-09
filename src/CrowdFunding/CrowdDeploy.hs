@@ -63,6 +63,12 @@ convertToPubKeyHash b = Ledger.PaymentPubKeyHash (Ledger.PubKeyHash $ decodeHex 
 targetAmount :: Integer
 targetAmount = 50000000   -- 50 Ada
 
+dCurrencySymbol :: LedgerApiV2.CurrencySymbol
+-- dCurrencySymbol = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
+dCurrencySymbol = "b7047182a00354f8c4cd7b01c2faab230e01d2f33a6dcfd0c781f7ec"
+dToken    :: LedgerApiV2.TokenName
+dToken = "MyCrowdFund"
+
 beneficiaryHash :: B.ByteString
 beneficiaryHash = "0e97aa033ceee762c25285cdcc94287178f01b45a585fd0d4da8387a"  -- Beneficiary wallet
 
@@ -74,7 +80,7 @@ collateralHash :: B.ByteString
 collateralHash = "0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a"  -- Collaterl wallet - will be contribute
 
 crowdDeadline :: Ledger.POSIXTime
-crowdDeadline = 1671159023000
+crowdDeadline = 1671159023000    -- Thursday, December 15, 2022 6:50:23 PM
 
 datumCrowd :: OnChain.Dat
 datumCrowd = OnChain.Dat { 
@@ -82,8 +88,8 @@ datumCrowd = OnChain.Dat {
                            , OnChain.deadline =crowdDeadline
     -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
                            -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
-                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
-                           , OnChain.aToken = "MyCrowdFund"
+                           ,    OnChain.aCurrency = dCurrencySymbol
+                           , OnChain.aToken = dToken
                            , OnChain.targetAmount = targetAmount
                            , OnChain.actualtargetAmountsoFar = 2000000
                            , OnChain.contributorsMap = []}
@@ -94,8 +100,8 @@ datumCrowdOut = OnChain.Dat {
                            , OnChain.deadline =crowdDeadline
     -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
                            -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
-                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
-                           , OnChain.aToken = "MyCrowdFund"
+                           ,    OnChain.aCurrency = dCurrencySymbol
+                           , OnChain.aToken = dToken
                            , OnChain.targetAmount = targetAmount
                            , OnChain.actualtargetAmountsoFar = 32000000
                            , OnChain.contributorsMap = [(convertToPubKeyHash contributorHash,30000000)]}
@@ -106,8 +112,8 @@ datumCrowdOut2 = OnChain.Dat {
                            , OnChain.deadline =crowdDeadline
     -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
                            -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
-                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
-                           , OnChain.aToken = "MyCrowdFund"
+                           ,    OnChain.aCurrency = dCurrencySymbol
+                           , OnChain.aToken = dToken
                            , OnChain.targetAmount = targetAmount
                            , OnChain.actualtargetAmountsoFar = 62000000
                            , OnChain.contributorsMap = [(convertToPubKeyHash contributorHash,30000000), (convertToPubKeyHash collateralHash,30000000)]}
@@ -120,8 +126,8 @@ datumCrowdOut3 = OnChain.Dat {
                            , OnChain.deadline =crowdDeadline
     -- https://preview.cardanoscan.io/token/d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be4d7943726f776446756e64?tab=transactions
                            -- , OnChain.aCurrency = "d1c14384a6e806c521bff39b0c98518576a29727ac2b5f029cf5b9be"
-                           ,    OnChain.aCurrency = "88d4e1abfbcd08ace98f41a1a514e84239703c0ab5e5feb61f029eed"
-                           , OnChain.aToken = "MyCrowdFund"
+                           ,    OnChain.aCurrency = dCurrencySymbol
+                           , OnChain.aToken = dToken
                            , OnChain.targetAmount = targetAmount
                            , OnChain.actualtargetAmountsoFar = 62000000
                            , OnChain.contributorsMap = [(convertToPubKeyHash collateralHash,60000000)]}

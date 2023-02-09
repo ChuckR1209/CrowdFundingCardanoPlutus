@@ -125,10 +125,10 @@ crowdValidator d r context =
              && traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum 
 
 -- --        Scripts address validations for Tx-in and Tx-out
---           traceIfFalse "Scripts address validations for Tx-in and Tx-out fail" addressValidation
+             && traceIfFalse "Scripts address validations for Tx-in and Tx-out fail" addressValidation
 
 -- --        Contributor has to sign
---           && traceIfFalse "Not signed by contributor" (signedByContributor $ fst cmap)
+             && traceIfFalse "Not signed by contributor" (signedByContributor $ fst cmap)
 
 
              && traceIfFalse "Redeem amount has to be min 1 Ada" (contributionAmountRedeemer $ snd cmap)
@@ -143,7 +143,7 @@ crowdValidator d r context =
 --         --Only 1 tx-in with datum allowed- other can be payment address fee etc. which dont have datum
           && traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn 
           -- True
-    -- -- traceIfFalse "Deadline not yet reached" deadlinepassed
+          && traceIfFalse "Deadline not yet reached" deadlinepassed
     -- -- need to check that Value being paid to script with NFT does not have any other tokens
     -- -- 
 
@@ -169,6 +169,9 @@ crowdValidator d r context =
 
       inputsAllResolved :: [Contexts.TxOut]
       inputsAllResolved = fmap Contexts.txInInfoResolved inputsAll  
+
+      minLovelace2 :: Integer
+      minLovelace2 = 2000000
 
 
 
@@ -215,6 +218,8 @@ crowdValidator d r context =
       getDatumFromUTXO [V2LedgerTx.OutputDatumHash hs ] = [] 
       getDatumFromUTXO ((V2LedgerTx.OutputDatum d) : dts ) = d : (getDatumFromUTXO dts)
       getDatumFromUTXO ((_) : dts ) =  (getDatumFromUTXO dts)
+      getDatumFromUTXO ((V2LedgerTx.NoOutputDatum) : dts ) = (l_getDatumFromUTXO dts)
+      getDatumFromUTXO ((V2LedgerTx.OutputDatumHash hs ) : dts)  = (l_getDatumFromUTXO dts)
 
 
 
@@ -398,10 +403,10 @@ crowdValidator d r context =
       validateTargetAmountSoFar Nothing Nothing = False
 
 --    Validate the Contributor map 
---    Add the redeemer to Contributor map from Tx-in Datum contributor map
+--    Add the redeemer to Contributor map from Tx-in Datum contributor map - we need to add to the end 
       maybeNewContributorDatum :: Maybe [(Ledger.PaymentPubKeyHash,Integer)]
       maybeNewContributorDatum = case maybeContributorsMapFromDatumTxIn of 
-                                   Just cp -> Just (cp : (contribution r ))
+                                   Just cp -> Just (cp ++ [(contribution r )])
                                    Nothing -> Just [(contribution r ) ]
 
 
@@ -672,6 +677,16 @@ contributor1 = convertToPaymentPubKeyHash contributorHash1
 contributorPubKey :: Ledger.PubKeyHash
 contributorPubKey = convertToPubKeyHash contributorHash1
 
+-- this is collateral wallet - we will use for 2nd contrinutor
+contributor2Hash1 ::  B.ByteString
+contributor2Hash1 = "0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a"
+
+contributor2 = convertToPaymentPubKeyHash contributor2Hash1
+
+collateralPubKey :: Ledger.PubKeyHash
+collateralPubKey = convertToPubKeyHash contributor2Hash1
+
+
 cFDatumRaw1 :: Dat
 cFDatumRaw1 = Dat 
     {
@@ -683,6 +698,34 @@ cFDatumRaw1 = Dat
         , actualtargetAmountsoFar = 2000000
         , contributorsMap = [] 
     }
+
+
+-- basically contribution 1 , 30Ada is already done - this will be the Datum already present at Script
+cFDatumVal4Test2Contr1 :: Dat
+cFDatumVal4Test2Contr1 = Dat 
+    {
+        beneficiary = beneficiary1
+        , deadline = 1671159023000
+        , aCurrency = curSymCrowdFund 
+        , aToken =crTokenCrowdFund
+        , targetAmount = 50000000   -- 50 Ada
+        , actualtargetAmountsoFar = 32000000
+        , contributorsMap = [(contributor1, 30000000)] 
+    }
+
+-- basically contributors 1 and 2 , 60Ada is already done - 
+cFDatumVal4Test2Contr2 :: Dat
+cFDatumVal4Test2Contr2 = Dat 
+    {
+        beneficiary = beneficiary1
+        , deadline = 1671159023000
+        , aCurrency = curSymCrowdFund 
+        , aToken =crTokenCrowdFund
+        , targetAmount = 50000000   -- 50 Ada
+        , actualtargetAmountsoFar = 62000000
+        , contributorsMap = [(contributor1, 30000000), (contributor2, 30000000)] 
+    }
+
 
 cFDatumRaw1Close :: Dat
 cFDatumRaw1Close = Dat 
@@ -800,11 +843,19 @@ cFRedeemCloseRaw1 = Close
 cFRedeemContr1BuiltInData :: BuiltinData
 cFRedeemContr1BuiltInData = (PlutusTx.toBuiltinData cFRedeemContributeRaw1)
 
-cFRedeemContributeRaw1Val4 :: Redeem
-cFRedeemContributeRaw1Val4 = Contribute
+cFRedeemContributeRaw1Val4Test1 :: Redeem
+cFRedeemContributeRaw1Val4Test1 = Contribute
     {
         contribution = (contributor1, 30000000)              -- contribution 30 Ada
     }
+
+
+cFRedeemContributeRaw1Val4Test2 :: Redeem
+cFRedeemContributeRaw1Val4Test2 = Contribute
+    {
+        contribution = (contributor2, 30000000)              -- contribution 30 Ada
+    }
+
 
 
       ------------------------------------------------------------ Address related
@@ -869,8 +920,8 @@ crTxOut1 = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
 
 -- Validation#4
 -- this test will have tx-in 2 ada, output Datum 32 Ada - so 1 contributor 
-crTxOutVal4 :: V2LedgerTx.TxOut
-crTxOutVal4 = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
+crTxOutVal4Test1Out :: V2LedgerTx.TxOut
+crTxOutVal4Test1Out = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
              V2LedgerTx.txOutDatum  = (rawDatToOutputDatum cFDatumRawVal4TxOut), 
              V2LedgerTx.txOutReferenceScript = Nothing,
              V2LedgerTx.txOutValue = singleTonCF <> ada30 <> minAda
@@ -919,6 +970,26 @@ crTxOutInitial = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
              V2LedgerTx.txOutValue = minAda <> singleTonCF     -- Actual CrowdFund token expected one.
 
 }
+
+-- will have 32 Ada and 1 contributor
+crTxOutVal4Test2In :: V2LedgerTx.TxOut
+crTxOutVal4Test2In = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
+             V2LedgerTx.txOutDatum  = (rawDatToOutputDatum cFDatumVal4Test2Contr1),  ---  cfDatumOutputDatum,   --  datumOutputDatumHash, 
+             V2LedgerTx.txOutReferenceScript = Nothing,
+             V2LedgerTx.txOutValue = ada30 <>  minAda <> singleTonCF     -- Actual CrowdFund token expected one.
+
+}
+
+-- will have 62 Ada and 2 contributors
+crTxOutVal4Test2Out :: V2LedgerTx.TxOut
+crTxOutVal4Test2Out = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
+             V2LedgerTx.txOutDatum  = (rawDatToOutputDatum cFDatumVal4Test2Contr2),  ---  cfDatumOutputDatum,   --  datumOutputDatumHash, 
+             V2LedgerTx.txOutReferenceScript = Nothing,
+             V2LedgerTx.txOutValue = ada30 <> ada30 <> minAda <> singleTonCF     -- Actual CrowdFund token expected one.
+
+}
+
+
 
 crTxOutInitialWrong1 :: V2LedgerTx.TxOut
 crTxOutInitialWrong1 = V2LedgerTx.TxOut { V2LedgerTx.txOutAddress = crAddress1,
@@ -1000,6 +1071,18 @@ txIn1 = Contexts.TxInInfo {
            Contexts.txInInfoResolved = crTxOutInitial
 }
 
+txIn1Val4Test2In :: Contexts.TxInInfo
+txIn1Val4Test2In = Contexts.TxInInfo {
+           Contexts.txInInfoOutRef = lTxOutRef,
+           Contexts.txInInfoResolved = crTxOutVal4Test2In
+}
+
+
+txIn1Val4Test2Out :: Contexts.TxInInfo
+txIn1Val4Test2Out = Contexts.TxInInfo {
+           Contexts.txInInfoOutRef = lTxOutRef,
+           Contexts.txInInfoResolved = crTxOutVal4Test2Out
+}
 -- this is like a payment addr tx-in - with no Datum
 txIn2 :: Contexts.TxInInfo
 txIn2 = Contexts.TxInInfo {
@@ -1319,6 +1402,8 @@ l_getDatumFromUTXO [V2LedgerTx.OutputDatum d] = [d]      -- Only take actual Dat
 l_getDatumFromUTXO [V2LedgerTx.NoOutputDatum] = []
 l_getDatumFromUTXO [V2LedgerTx.OutputDatumHash hs ] = [] 
 l_getDatumFromUTXO ((V2LedgerTx.OutputDatum d) : dts ) = d : (l_getDatumFromUTXO dts)
+l_getDatumFromUTXO ((V2LedgerTx.NoOutputDatum) : dts ) = (l_getDatumFromUTXO dts)
+l_getDatumFromUTXO ((V2LedgerTx.OutputDatumHash hs ) : dts)  = (l_getDatumFromUTXO dts)
 
 l_getDatFromUTXODatum :: [Ledger.Datum] -> [Maybe Dat]
 l_getDatFromUTXODatum [] = [Nothing]
@@ -1360,7 +1445,7 @@ l_getCurSymFromDatum _ = Nothing
 
 
 
--- Validation#4 test 1
+------------------------------------------------------------------------------------ Validation#4 test 1
 ----- for correctOutputDatumValue validation
 
 -- create the context for valiation 4 -
@@ -1372,33 +1457,34 @@ l_getCurSymFromDatum _ = Nothing
 -- Step 3 - Build your DatumTxIn and DatumTxOut, and Datum to be passed, and Redeemer
 -- 
 
-
-lScriptContextVal4 :: Contexts.ScriptContext
-lScriptContextVal4 = Contexts.ScriptContext {
-    Contexts.scriptContextTxInfo = l_ContextVal4,
+--- Build Script context
+lScriptContextVal4Test1 :: Contexts.ScriptContext
+lScriptContextVal4Test1 = Contexts.ScriptContext {
+    Contexts.scriptContextTxInfo = l_ContextVal4Test1,
     Contexts.scriptContextPurpose = Contexts.Spending lTxOutRef
 }
 
-l_ContextVal4 :: Contexts.TxInfo
-l_ContextVal4 = Contexts.TxInfo {
+l_ContextVal4Test1 :: Contexts.TxInfo
+l_ContextVal4Test1 = Contexts.TxInfo {
               Contexts.txInfoInputs  = [txIn1, txIn2]    -- 2 TxInfoInputs, 1 is UTXO with NFT, and other just Payment addr for Fee or collaterals etc
-             , Contexts.txInfoOutputs = [crTxOutVal4, crTxOutNoDatum]   -- Contribution 1 + any other tx-out payment address like Change address ex.
-             , Contexts.txInfoSignatories = [beneficiaryPubKey]
-
+             , Contexts.txInfoOutputs = [crTxOutVal4Test1Out, crTxOutNoDatum]   -- Contribution 1 + any other tx-out payment address like Change address ex.
+             , Contexts.txInfoSignatories = [contributorPubKey]
+-- Validation#4 test 1
 }
 
 --      Get all the tx-outs
-l_outputsAllVal4 :: [Contexts.TxOut]
-l_outputsAllVal4 = Contexts.txInfoOutputs l_ContextVal4
+l_outputsAllVal4Test1 :: [Contexts.TxOut]
+l_outputsAllVal4Test1 = Contexts.txInfoOutputs l_txinfoVal4Test1 -- l_ContextVal4Test1
 
-l_txinfoVal4 :: Contexts.TxInfo 
-l_txinfoVal4 = Contexts.scriptContextTxInfo lScriptContextVal4
+--      Get all the tx-ins
+l_txinfoVal4Test1 :: Contexts.TxInfo 
+l_txinfoVal4Test1 = Contexts.scriptContextTxInfo lScriptContextVal4Test1
 
-l_inputsAllVal4 :: [Contexts.TxInInfo]
-l_inputsAllVal4 = Contexts.txInfoInputs l_txinfoVal4
+l_inputsAllVal4Test1 :: [Contexts.TxInInfo]
+l_inputsAllVal4Test1 = Contexts.txInfoInputs l_txinfoVal4Test1
 
-l_inputsAllResolvedVal4 :: [Contexts.TxOut]
-l_inputsAllResolvedVal4 = fmap Contexts.txInInfoResolved l_inputsAllVal4  
+l_inputsAllResolvedVal4Test1 :: [Contexts.TxOut]
+l_inputsAllResolvedVal4Test1 = fmap Contexts.txInInfoResolved l_inputsAllVal4Test1  
 
 
 
@@ -1408,21 +1494,21 @@ l_inputsAllResolvedVal4 = fmap Contexts.txInInfoResolved l_inputsAllVal4
 -- l_outputsAll -- need to set value for this test
 
 -- --        Validates expected Values based on Datum of tx-out and tx-in - tx-in Value  + redeemer value = tx-out Value
-l_correctOutputDatumValue :: Bool
-l_correctOutputDatumValue =   case (l_totalValueDatumTxOut l_outputsAllVal4) of 
-                         Just to -> ( to  ==  l_totalExpectedDatumTxInPlusRedeem l_inputsAllResolvedVal4)
+l_correctOutputDatumValueVal4test1 :: Bool
+l_correctOutputDatumValueVal4test1 =   case (l_totalValueDatumTxOut l_outputsAllVal4Test1) of 
+                         Just to -> ( to  ==  l_totalExpectedDatumTxInPlusRedeem l_redeemValueVal4Test1 l_inputsAllResolvedVal4Test1)
                          Nothing -> False
 
-l_totalExpectedDatumTxInPlusRedeem :: [Contexts.TxOut]  -> Ledger.Value
-l_totalExpectedDatumTxInPlusRedeem txIn = case (l_totalValueDatumTxin txIn) of 
-                                Just ti -> (l_redeemValue <> ti )
+l_totalExpectedDatumTxInPlusRedeem :: Ledger.Value -> [Contexts.TxOut]  -> Ledger.Value
+l_totalExpectedDatumTxInPlusRedeem redVal txIn = case (l_totalValueDatumTxin txIn) of 
+                                Just ti -> (redVal <> ti )
                                 Nothing -> traceError "No txInValue Datum , only redeemValue"
 
-l_redeemValue :: Ledger.Value
-l_redeemValue = Ada.lovelaceValueOf (snd (contribution cFRedeemContributeRaw1Val4 ))
+l_redeemValueVal4Test1 :: Ledger.Value
+l_redeemValueVal4Test1 = Ada.lovelaceValueOf (snd (contribution cFRedeemContributeRaw1Val4Test1 ))
 
 l_totalValueDatumTxOut :: [Contexts.TxOut] -> ( Maybe Ledger.Value )
-l_totalValueDatumTxOut txOut = l_getTotalValueDatum ( l_datumTokenValue l_maybeCurrSymTxOut l_maybeTokenTxOut) (l_targetAmountSoFarValueTxOut txOut) ada0
+l_totalValueDatumTxOut txOut = l_getTotalValueDatum ( l_datumTokenValue l_maybeCurrSymTxOutVal4Test1 l_maybeTokenTxOutVal4Test1) (l_targetAmountSoFarValueTxOut txOut) ada0
 
 
 l_targetAmountSoFarValueTxOut :: [Contexts.TxOut] -> Maybe Ledger.Value
@@ -1437,13 +1523,60 @@ l_maybeTargetAmountSoFarTxOut txOut = l_getActualTargetAmountSoFarFromDatum (l_g
 
 
 
-l_maybeTokenTxOut :: Maybe LedgerApiV2.TokenName 
-l_maybeTokenTxOut = l_getTokenFromDatum (l_getDatFromUTXODatum (l_getDatumFromUTXO (l_getTxOutputDatumFromUTXO l_outputsAllVal4)))
+l_maybeTokenTxOutVal4Test1 :: Maybe LedgerApiV2.TokenName 
+l_maybeTokenTxOutVal4Test1 = l_getTokenFromDatum (l_getDatFromUTXODatum (l_getDatumFromUTXO (l_getTxOutputDatumFromUTXO l_outputsAllVal4Test1)))
 
-l_maybeCurrSymTxOut :: Maybe LedgerApiV2.CurrencySymbol 
-l_maybeCurrSymTxOut = l_getCurSymFromDatum (l_getDatFromUTXODatum (l_getDatumFromUTXO (l_getTxOutputDatumFromUTXO l_outputsAllVal4)))
+l_maybeCurrSymTxOutVal4Test1 :: Maybe LedgerApiV2.CurrencySymbol 
+l_maybeCurrSymTxOutVal4Test1 = l_getCurSymFromDatum (l_getDatFromUTXODatum (l_getDatumFromUTXO (l_getTxOutputDatumFromUTXO l_outputsAllVal4Test1)))
 
 
+
+
+--------------------------------------------------- validation 4 Test 2
+----- Contributor # 2 contributes 30 Ada to existing 32 Ada
+-- Contributor 1 already has depsited - this is Contribtuion 2 from Collateral Wallet.
+
+
+lScriptContextVal4Test2 :: Contexts.ScriptContext
+lScriptContextVal4Test2 = Contexts.ScriptContext {
+    Contexts.scriptContextTxInfo = l_ContextVal4Test2,
+    Contexts.scriptContextPurpose = Contexts.Spending lTxOutRef
+}
+
+l_ContextVal4Test2 :: Contexts.TxInfo
+l_ContextVal4Test2 = Contexts.TxInfo {
+              Contexts.txInfoInputs  = [txIn2, txIn1Val4Test2In]    --
+             , Contexts.txInfoOutputs = [crTxOutVal4Test2Out, crTxOutNoDatum]   -- Contribution 1 + any other tx-out payment address like Change address ex.
+             , Contexts.txInfoSignatories = [collateralPubKey]
+-- Validation#4 test 1
+}
+
+
+--      Get all the tx-outs
+l_outputsAllVal4Test2 :: [Contexts.TxOut]
+l_outputsAllVal4Test2 = Contexts.txInfoOutputs l_txinfoVal4Test2      -- l_ContextVal4Test2
+
+--      Get all the tx-ins
+l_txinfoVal4Test2 :: Contexts.TxInfo 
+l_txinfoVal4Test2 = Contexts.scriptContextTxInfo lScriptContextVal4Test2
+
+l_inputsAllVal4Test2 :: [Contexts.TxInInfo]
+l_inputsAllVal4Test2 = Contexts.txInfoInputs l_txinfoVal4Test2
+
+l_inputsAllResolvedVal4Test2 :: [Contexts.TxOut]
+l_inputsAllResolvedVal4Test2 = fmap Contexts.txInInfoResolved l_inputsAllVal4Test2 
+
+
+l_correctOutputDatumValueVal4test2 :: Bool
+l_correctOutputDatumValueVal4test2 =   case (l_totalValueDatumTxOut l_outputsAllVal4Test2) of 
+                         Just to -> ( to  ==  l_totalExpectedDatumTxInPlusRedeem l_redeemValueVal4Test2 l_inputsAllResolvedVal4Test2)
+                         Nothing -> False
+
+l_redeemValueVal4Test2 :: Ledger.Value
+l_redeemValueVal4Test2 = Ada.lovelaceValueOf (snd (contribution cFRedeemContributeRaw1Val4Test2 ))
+
+
+tmp_getAllValuesTxIns = fmap Contexts.txOutValue l_inputsAllResolvedVal4Test2
 
 -- Breakdowns
 -- CONTIBUTION

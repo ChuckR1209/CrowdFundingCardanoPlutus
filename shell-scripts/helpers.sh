@@ -40,7 +40,9 @@ function getInputTx() {
 	SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $1 }')#$(echo $TX_ROW | awk '{ print $2 }')"
 	SELECTED_UTXO_LOVELACE=$(echo $TX_ROW | awk '{ print $3 }')
 	SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk '{ print $6 }')
-	SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }')
+	#SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }')
+	SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $1}')
+    SELECTED_UTXO_TOKEN_NAME_HEX=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $2}')
 }
 
 walletAddress() {
