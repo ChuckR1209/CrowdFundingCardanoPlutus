@@ -52,14 +52,13 @@ data Dat = Dat
         , aToken    :: LedgerApiV2.TokenName
         , targetAmount :: Integer
         , actualtargetAmountsoFar :: Integer
-        -- Keep hash of whole MAP - for now we will do with Map. 
-        -- Later need to optimize since if we have 1000s ofcontributors its storage issue
-            -- maybe we instead mint an NFT to them instead of storing them here etc. 
-        , contributorsMap :: [(Ledger.PaymentPubKeyHash,Integer)] -- Keep hash of whole MAP
+        , contributorsMap :: [(Ledger.PaymentPubKeyHash,Integer)] 
     } deriving P.Show
 PlutusTx.unstableMakeIsData ''Dat
 
-
+        -- Keep hash of whole MAP - for now we will do with Map. 
+        -- Later need to optimize since if we have 1000s ofcontributors its storage issue
+            -- maybe we instead mint an NFT to them instead of storing them here etc. 
 
 
 data Contribution 
@@ -112,37 +111,51 @@ crowdValidator d r context =
 -- --        Validates expected Values based on Datum of tx-out and tx-in - tx-in Value  + redeemer value = tx-out Value
              && traceIfFalse "Constructed Values calculated between tx-out Datum and TxIn datum plus Redeem is wrong" correctOutputDatumValue 
 
+--           validation#5
 -- --        Validates the actual value at tx-out with calculated Value based on tx-out Datum
              && traceIfFalse "Actual tx-out Values and constructed Datum tx-out dont match" correctOutputValue 
 
+--           validation#6
 -- --        tx-out - Datum collected amount should be updated with Tx-in amount + contributed amount
              && traceIfFalse "the ContributedSoFar amount has a descrepancy" correctTargetAmountSoFarDatum 
 
+--           validation#7
 -- --        tx-in and tx-out - Beneficiary, Deadline and Target amount should be same.
              && traceIfFalse "Datums check: Either beneficiary , deadline or targetAmount is not matching" correctRestDatum 
 
+--           validation#8
 -- --        The tx-out Contributors map should be tx-in Contributor map + Redeem map
              && traceIfFalse "Datums check: Contributors map is not added correctly"  correctContributionMapDatum 
 
+--           validation#9
 -- --        Scripts address validations for Tx-in and Tx-out
              && traceIfFalse "Scripts address validations for Tx-in and Tx-out fail" addressValidation
 
+--           validation#10
 -- --        Contributor has to sign
              && traceIfFalse "Not signed by contributor" (signedByContributor $ fst cmap)
 
-
+--           validation#11
              && traceIfFalse "Redeem amount has to be min 1 Ada" (contributionAmountRedeemer $ snd cmap)
 
+--           validation#12
           -- && traceIfFalse "Deadline reached - no more contributions" (not deadlinepassed)
           
       Close -> 
+
+--        validation#13
           traceIfFalse "UTXO being spend values are not matching based on Datum" correctInputValueClose
-          && traceIfFalse "Target amount not reached" closeTargetAmountValid            
+--        validation#14
+          && traceIfFalse "Target amount not reached" closeTargetAmountValid
+--        validation#15            
           && traceIfFalse "Not signed by beneficiary" signedByBeneficiary
 
+--        validation#16
 --         --Only 1 tx-in with datum allowed- other can be payment address fee etc. which dont have datum
           && traceIfFalse "Only 1 tx-in Datum allowed" only1ValidDatumTxIn 
           -- True
+
+--        validation#17
           && traceIfFalse "Deadline not yet reached" deadlinepassed
     -- -- need to check that Value being paid to script with NFT does not have any other tokens
     -- -- 

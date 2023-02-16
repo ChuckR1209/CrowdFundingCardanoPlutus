@@ -12,18 +12,26 @@ SIGNING_KEY_FILE_ARRAY=()
 
 # Set this for this Current run so for multiple runs no issues
 SCRIPT_NAME=CrowdFunding
+
+# TO_WALLET is contributor when redeem is Contribute and When its close its the Beneficiary wallet
 # TO_WALLET_NAME=Contributor    
 # COLLATERAL=Contributor
-# TO_WALLET_NAME=Collateral    
-# COLLATERAL=Collateral
-TO_WALLET_NAME=Beneficiary    
-COLLATERAL=Beneficiary
-CLOSE_PAYMENT=62000000
+# TO_WALLET_NAME=Collateral    # contributor 1 for 2nd run
+# COLLATERAL=Collateral        # we use the same contributor 1 wallet - one of the UTXO as colleteral too
 
-DATUM_HASH_FILE=crowdFunding-datumOut2
+# TO_WALLET_NAME=Beneficiary    # Contributor 2 for the 2nd run
+# COLLATERAL=Beneficiary        # collateral for the Txn from same Contributor 2 wallet
+
+TO_WALLET_NAME=forPlutus    
+COLLATERAL=forPlutus
+CLOSE_PAYMENT=302000000
+
+#DATUM_HASH_FILE=crowdFunding-datumOut    # first contribution
+DATUM_HASH_FILE=crowdFunding-datumOut2   # 2nd contribution
 #REDEEMER_FILE=crowdFundingContribute-redeem
+#REDEEMER_FILE=crowdFundingContribute-redeem2
 REDEEMER_FILE=crowdFundingClose-redeem
-#WRITING_BACK_TO_SCRIPT=Y
+#WRITING_BACK_TO_SCRIPT=Y      # when we contribute this needs to be uncommented
 TOKEN_QUANTITY_SCRIPT=1
 
 SIGNER1=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.pubKeyHash)

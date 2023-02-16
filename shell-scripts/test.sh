@@ -15,12 +15,12 @@
 # echo "Token name hex - ${TOKEN_NAME_HEX}"
 
 
-# set -e
-# set -o pipefail
+set -e
+set -o pipefail
 
-# source helpers.sh
+source helpers.sh
 
-# set -x
+#set -x
 
 # read -p 'Do you need to pick a UTXO spend for NFT? [Y/N]: ' inputUtxoSpend
 # REQUIRED_TX_IN_ARRAY=()
@@ -163,11 +163,44 @@
 # TMPHASH=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.pubKeyHash)
 # echo " temp hash = $TMPHASH"
 
-SELECTED_UTXO_TOKENS=9
-TOKENS_TO_SEND_BACK=`expr $SELECTED_UTXO_TOKENS - 1`
-if [ $TOKENS_TO_SEND_BACK -gt 0 ]
+# SELECTED_UTXO_TOKENS=9
+# TOKENS_TO_SEND_BACK=`expr $SELECTED_UTXO_TOKENS - 1`
+# if [ $TOKENS_TO_SEND_BACK -gt 0 ]
+# then
+#   echo $TOKENS_TO_SEND_BACK
+# else 
+#   echo "Zero tokens"
+# fi
+
+
+BALANCE_FILE=/home/chakravarti/emurgoCardano/tx/walletBalances.txt
+cat $BALANCE_FILE
+read -p 'TX row number starting in 1: ' TMP
+TX_ROW_NUM="$(($TMP+2))"
+echo "Row num ${TX_ROW_NUM}"
+
+TX_ROW=$(sed "${TX_ROW_NUM}q;d" $BALANCE_FILE)
+echo "Row num ${TX_ROW}"
+
+SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $1 }')#$(echo $TX_ROW | awk '{ print $2 }')"
+SELECTED_UTXO_LOVELACE=$(echo $TX_ROW | awk '{ print $3 }')
+SELECTED_UTXO_TOKENS=$(echo $TX_ROW | awk '{ print $6 }')
+#SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }')
+SELECTED_UTXO_POLICYID=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $1}')
+SELECTED_UTXO_TOKEN_NAME_HEX=$(echo $TX_ROW | awk '{ print $7 }' | awk -F '.' '{print $2}')
+
+echo "SELECTED_UTXO=  ${SELECTED_UTXO}"
+echo "SELECTED_UTXO_LOVELACE=  ${SELECTED_UTXO_LOVELACE}"
+echo "SELECTED_UTXO_TOKENS=  ${SELECTED_UTXO_TOKENS}"
+echo "SELECTED_UTXO_POLICYID=  ${SELECTED_UTXO_POLICYID}"
+echo "SELECTED_UTXO_TOKEN_NAME_HEX=  ${SELECTED_UTXO_TOKEN_NAME_HEX}"
+
+
+#TOKENS_TO_SEND_BACK=`expr $SELECTED_UTXO_TOKENS - 1`
+#TOKENS_TO_SEND_BACK=$SELECTED_UTXO_TOKENS
+if [ $TOKENS_TO_SEND_BACK -gt 1 ]
 then
-  echo $TOKENS_TO_SEND_BACK
+  echo "tokens to send back= ${TOKENS_TO_SEND_BACK}"
 else 
   echo "Zero tokens"
 fi

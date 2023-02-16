@@ -30,11 +30,11 @@ function getInputTx() {
 	cat $BALANCE_FILE
 	read -p 'TX row number starting in 1: ' TMP
 	TX_ROW_NUM="$(($TMP+2))"
-
+    echo "TX_ROW_NUM= ${TX_ROW_NUM}"
 	# https://www.geeksforgeeks.org/sed-command-in-linux-unix-with-examples/
 	# i think it just shows that whole like - the UTXO with lovelace and tokens.
 	TX_ROW=$(sed "${TX_ROW_NUM}q;d" $BALANCE_FILE)
-
+    echo "TX_ROW= ${TX_ROW}"
 	# https://www.geeksforgeeks.org/awk-command-unixlinux-examples/
 
 	SELECTED_UTXO="$(echo $TX_ROW | awk '{ print $1 }')#$(echo $TX_ROW | awk '{ print $2 }')"

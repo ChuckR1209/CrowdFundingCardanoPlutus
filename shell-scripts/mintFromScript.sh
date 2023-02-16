@@ -17,7 +17,7 @@ LOVELACE_TO_SEND=12000000    # send more than min 2Ada otherwise issues in PayTo
 TO_WALLET_NAME=forPlutus
 COLLATERAL=Collateral
 TOKEN_NAME=MyCrowdFund
-TOKEN_QUANTITY=10
+TOKEN_QUANTITY=1
 REDEEMER_FILE=redeemer-mint.json
 
 # Collateral
