@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Generic
-BASE=/home/chakravarti/emurgoCardano
+BASE=/home/chakravarti/CrowdFundingCardanoPlutus
 export WORK=$BASE/scripts/work
 export CARDANO_CLI=cardano-cli
 export TESTNET_MAGIC=2
