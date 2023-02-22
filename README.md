@@ -2,19 +2,7 @@
 
 
 
-
-
-
-
-<img src="Images/image-20230220192158564.png" alt="image-20230220192158564" style="zoom:150%;" />
-
-
-
-
-
-
-
-
+![image-20230222113048433](Images/image-20230222113048433.png)
 
 
 
@@ -104,16 +92,30 @@ All operations are managed via Securitize and signed with the investor’s walle
 
 
 
-This smart contact will help anyone who wants to raise money through a Crowd Funding on public block-chain. Its generic Smart contract so anyone can use it to raise Funds.
+This smart contact will help anyone who wants to raise money through Crowd Funding on public block-chain Cardano. Its generic Smart contract so anyone can use it to raise Funds. So it can be used to run as many Crowd Funding ventures as needed by anyone.  
 
-1. It will allow us to set a deadline for the Fund contribution and collection. 
-2. Contributors 
-   1. can contribute to this Smart contract until the deadline 
+The methodology used is an unique one and only NFT will always be present on UTXO that will gather all the crowd funded Ada. The very first time the Beneficiary (or anyone can too specifying a Beneficiary who will collect the funds) starts off with depositing an NFT at the script to kick off the Crowd Funding venture. This is the initial UTXO with NFT. This NFT is our thread token that will track this particular Crowd Funding venture.
+
+When a contributor wants to contribute they will spend this unique UTXO with NFT and write it back to script with this NFT with any Ada already present and additionally the amount they are contributing. This is serialized in this way to keep track of Target amount. 
+
+
+
+
+
+![image-20230222112832909](Images/image-20230222112832909.png)
+
+
+
+1. Beneficiary 
+   1. Beneficiary is the person who will get the funds raised by this contract. This is represented by public hash key of the Beneficiary. Only this address can get the funds.
+   2. Only if the target is reached the Beneficiary can collect the amount and also past the Deadline
+2. Deadline - will allow us to set a deadline for the Fund contribution and collection. 
+3. A unique one and only NFT will  manage this contract. The NFT will always sit at the UTXO that has all the Ada being collected at the script.
+4. Contributors 
+   1. Contributors can contribute to this Smart contract until the deadline is reached
    2. Smart contract will also keep track of who is contributing through the Contributor's public key hash and also amount they contribute. 
-3. Target amount - a target amount is first specified by the beneficiary. 
-4. Beneficiary 
-   1. A beneficiary who will collect the Crowd Fund is already annouced first througth their public hash key
-   2. And once the target is reached the Beneficiary can collect the amount.
+5. Target amount - a target amount is first specified by the beneficiary. 
+6. 2. 
 
 
 
@@ -181,11 +183,23 @@ Now we can complete the transaction.
 
 
 
+
+
+
+
+
+
+
+
+
+
 ### To do - 
 
 1 - show 2 Crowd Funding Campaigns working
 
 2 - show some error cases too
+
+3 - Show some visual UTXOs diagrams etc.
 
 3 - Out of scope and some future validations - due to lack of time some validations like 
 
