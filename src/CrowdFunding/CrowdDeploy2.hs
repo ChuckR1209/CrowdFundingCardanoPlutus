@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
-module CrowdFunding.CrowdDeploy where
+module CrowdFunding.CrowdDeploy2 where
 
 
 import qualified Data.ByteString.Char8                   as B

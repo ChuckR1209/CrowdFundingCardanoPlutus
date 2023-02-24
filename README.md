@@ -12,15 +12,9 @@
 
 
 
-https://medium.com/securitize/introducing-web3-crowdfunding-4d0e5cc6f0f7
 
 
 
-
-
-
-
-https://thedefiant.io/web3-crowdfunding
 
 Web3 holds the promise of transforming crowdfunding to levels beyond the capabilities of Web2. To realize this potential, we must fully adopt both the trust-minimizing principles and technological advancements of Web2.
 
@@ -54,41 +48,9 @@ How do they operate? A typical Web3 crowdfunding platform, such as Juicebox and 
 
 
 
-https://securitize.io/raise-capital/web3-crowdfunding#:~:text=Known%20as%20the%20next%20generation,costly%20third%2Dparty%20integrations%20and
-
-Leverage the power of Web3
-
-Web3 is recognized as the future of the internet. It transforms the traditional cloud-based web into a decentralized platform where users can directly transfer value among each other. In this new ecosystem, tasks such as user registration, contract signing, and token receipt are completed using a user's cryptocurrency wallet, eliminating the need for expensive third-party services and reducing compliance worries.
 
 
-
-Investors can easily connect their crypto wallet to purchase Security Tokens with USDC and instantly receive their digital assets.
-
-
-
-Easily reward token holders and manage governance in a fully transparent way, turning your fans into loyal shareholders and brand evangelists.
-
-
-
-Regulatory requirements, such as jurisdictional restrictions are automatically enforced via smart contracts.
-
-
-
-Gain real-time access to your cap-table and its activity, providing you with valuable insights on shareholder activity.
-
-
-
-Tokens can be transferred 24/7 and easily integrate with secondary markets, where investors enjoy the benefits of instant settlement without counterparty risks.
-
-
-
-All operations are managed via Securitize and signed with the investor’s wallet, without the need for any paperwork.
-
-
-
-
-
-### The Crowd Funding Smart contract 
+## The Crowd Funding Smart contract 
 
 
 
@@ -98,30 +60,15 @@ The methodology used is an unique one and only NFT will always be present on UTX
 
 When a contributor wants to contribute they will spend this unique UTXO with NFT and write it back to script with this NFT with any Ada already present and additionally the amount they are contributing. This is serialized in this way to keep track of Target amount. 
 
+In the end once target is met and deadline is passed the Beneficiary can collect the funds.
 
+The OnChain code will do all the validations necessary so this execution happens  and provide necessary safe guards and no other malicious actors can hijack the contract and drain money etc. 
 
 
 
 ![image-20230222112832909](Images/image-20230222112832909.png)
 
 
-
-1. Beneficiary 
-   1. Beneficiary is the person who will get the funds raised by this contract. This is represented by public hash key of the Beneficiary. Only this address can get the funds.
-   2. Only if the target is reached the Beneficiary can collect the amount and also past the Deadline
-2. Deadline - will allow us to set a deadline for the Fund contribution and collection. 
-3. A unique one and only NFT will  manage this contract. The NFT will always sit at the UTXO that has all the Ada being collected at the script.
-4. Contributors 
-   1. Contributors can contribute to this Smart contract until the deadline is reached
-   2. Smart contract will also keep track of who is contributing through the Contributor's public key hash and also amount they contribute. 
-5. Target amount - a target amount is first specified by the beneficiary. 
-6. 2. 
-
-
-
-This Crowd Funding smart contract is developed on Cardano blockchain using `Plutus`.
-
-This same contract can be used for multiple Crowd Funding ventures by anyone.
 
 
 
@@ -131,18 +78,28 @@ This same contract can be used for multiple Crowd Funding ventures by anyone.
 
 #### On-Chain 
 
-Somebody wants to start a Crowd Funding campaign they will first create an NFT (Non-fungible token) - a native token on Cardano that exists only once just to create like an identifier for this Crowd Funding campaign. So this NFT is not necessarily has any much value as such since its only used as a Unique Identifier 
+The UTXO at the script will carry this information on a Datum as a State of the crowd funding venture.
+
+[`CrowdFundingOnChain.hs`](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/src/CrowdFunding/CrowdFundingOnChain.hs)
 
 ##### Crowd Funding State (Datum)
 
-Our Datum will represent the State of the Crowd Funding campaign & will have below info:
+1. Beneficiary 
+   1. Beneficiary is the person who will get the funds raised by this contract. This is represented by public hash key of the Beneficiary wallet address. Only this address can get the funds.
+   2. Only if the target is reached the Beneficiary can collect the amount and also past the Deadline
+2. Deadline - will allow us to set a deadline for the Fund contribution and also collection. 
+3. A unique one and only NFT will  manage this contract. The NFT will always sit at the UTXO that has all the Ada being collected at the script.
+4. Contributors 
+   1. Contributors can contribute to this Smart contract until the deadline is reached
+   2. Smart contract will also keep track of who is contributing through the Contributor's public key hash and also amount they contribute. 
+5. Target amount - a target amount is first specified by the beneficiary as the goal of the Crowd Funding contract. If this is not reached the Beneficiary cannot withdraw amounts.
+6. Actual Target Amount so far - this represents how much was collected so far
 
-1. Beneficiary - who is running this Crowd Funding campaign and will collect the money
-2. Deadline - this deadline it up to which contributors can contribute and only after which Beneficiary can withdraw. 
-3. NFT - this will be to identify this particular Crowd Funding campaign.
-4. Target Amount - this represent how much is planned to raise. Beneficiary can only withdraw funds if this is reached.
-5. Actual Target Amount so far - this represents how much was collected so far
-6. Contributors Map - this keeps track of every contributor and their Amount they contributed.
+
+
+This Crowd Funding smart contract is developed on Cardano blockchain using `Plutus`.
+
+This same contract can be used for multiple Crowd Funding ventures by anyone.
 
 ```haskell
 data Dat = Dat 
@@ -177,9 +134,134 @@ Now we can complete the transaction.
 
 
 
+##### Crowd Funding Redeem Actions
+
+Redeem actions are Contribute and Close.
 
 
 
+###### 
+
+```haskell
+data Redeem = Contribute 
+    {
+        contribution :: (Ledger.PaymentPubKeyHash,Integer)
+    } 
+              | Close 
+    deriving P.Show
+```
+
+
+
+###### Contribute 
+
+With this redeem action Contribtute a contributor will provide their pubKeyHash and amount they are contributing.
+
+Also since we write the script UTXO we consume back the script we need to provide the new Datum too and this Datum's fields need to reflect the correct Value being added. So the new Datum, Redeem and actual value at script UTXO (NFT + already held Value + new contribution) should all be correctly formed. otherwise there will be error.
+
+Note- deadline reached was commented out to make it easier for testing. But in real contracts we will have this turned on.
+
+
+
+###### Close
+
+Beneficiary can collect all the Ada from Crowd Fund contract when Target Amount is met and deadline is passed.
+
+
+
+#### Create .plutus datums and redeem
+
+Next we use `CrowdDeploy.hs` to create the `CrowdFunding.plutus` , different datums that we need to write back to script, redeem file.
+
+We use boilerplate code that takes the validator and eventually converts to a .plutus file.
+
+```haskell
+writeValidator :: FilePath -> LedgerApiV2.Validator -> IO (Either (FileError ()) ())
+writeValidator file = writeFileTextEnvelope @(PlutusScript PlutusScriptV2) file Nothing . PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise . LedgerApiV2.unValidatorScript
+
+```
+
+Similarly we use some boiler plate to create our Datum and Redeem files.
+
+[`CrowdDeploy.hs`](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/src/CrowdFunding/CrowdDeploy.hs)
+
+
+
+
+
+### Minting NFT
+
+
+
+It first starts with the Beneficiary first minting a unique NFT which will identify their Crowd Funding UTXO.
+
+We have the `MintBurn.hs` policy script which takes a unspent UTXO to make this NFT unique. This script makes sure only a unique NFT is generated.
+
+We have a parameterized script with an Unspent UTXO, name of token and the minter pubKeyHash.
+
+```haskell
+data TokenParam = TokenParam
+    {
+        utxo :: LedgerApiV2.TxOutRef,
+        name :: LedgerApiV2.TokenName,
+        minter :: Ledger.PaymentPubKeyHash
+    }
+```
+
+
+
+And in `MintingDeploy.hs` we define the values of this parameter and create our `MintBurn.plutus` script.
+
+
+
+
+
+### Executing the Crowd Funding Contract
+
+
+
+#### STEP 1 - Mint NFT
+
+We use the `mintFromScript.sh` shell script which will construct the transaction to mint a Unique NFT to the Beneficiary address.
+
+At the top of the shell script i have created some variables which we can pre-set to make the run easier and also when we run the script there few questions like which UTXO you are spending to create the NFT (which was specified in the parameters of the MIntBurn script) and the shell script will execute to mint the NFT and send it to the Wallet you chose.
+
+```bash
+# Input for this run only 
+SCRIPT_NAME=MintBurn
+UTXOWALLET=forPlutus
+LOVELACE_TO_SEND=12000000    # send more than min 2Ada otherwise issues in PayToScript
+TO_WALLET_NAME=forPlutus
+COLLATERAL=Collateral
+TOKEN_NAME=MyCrowdFund
+TOKEN_QUANTITY=1
+REDEEMER_FILE=redeemer-mint.json
+```
+
+
+
+Note - since i was testing i minted 10 NFT's so i can repeat lot of tests. But production script will only allow 1 which will be coded in the Onchain logic itself to check too.
+
+
+
+#### STEP 2 - Pay the NFT to the script
+
+Beneficiary now has to deposit the NFT at the Script. 
+
+We will use the shell script `payToScriptCrowdFund.sh` which will construct the transaction to take the NFT from their wallet and pay to the script.
+
+Again at the top of shell script i have set some variables to make the run easier. Especially useful when testing and resolving errors since we run multiple times. 
+
+```bash
+# Set this for this Current run so for multiple runs no issues
+SCRIPT_NAME=CrowdFunding
+LOVELACE_TO_SEND=2000000  #-- 2 Ada initial
+DATUM_HASH_FILE=crowdFunding-datum
+SELECTED_WALLET_NAME=forPlutus
+TOKEN_QUANTITY_SCRIPT=1
+```
+
+After this step we should have a UTXO at the Crowd Funding Contract which has the NFT created from Step1 and also with the Initial datum.
 
 
 
@@ -536,5 +618,34 @@ This lets Beneficiary withdraw only after the deadline has passed.
 
 
 
+https://medium.com/securitize/introducing-web3-crowdfunding-4d0e5cc6f0f7
+
+https://securitize.io/raise-capital/web3-crowdfunding#:~:text=Known%20as%20the%20next%20generation,costly%20third%2Dparty%20integrations%20and
+
+Leverage the power of Web3
+
+Web3 is recognized as the future of the internet. It transforms the traditional cloud-based web into a decentralized platform where users can directly transfer value among each other. In this new ecosystem, tasks such as user registration, contract signing, and token receipt are completed using a user's cryptocurrency wallet, eliminating the need for expensive third-party services and reducing compliance worries.
 
 
+
+Investors can easily connect their crypto wallet to purchase Security Tokens with USDC and instantly receive their digital assets.
+
+
+
+Easily reward token holders and manage governance in a fully transparent way, turning your fans into loyal shareholders and brand evangelists.
+
+
+
+Regulatory requirements, such as jurisdictional restrictions are automatically enforced via smart contracts.
+
+
+
+Gain real-time access to your cap-table and its activity, providing you with valuable insights on shareholder activity.
+
+
+
+Tokens can be transferred 24/7 and easily integrate with secondary markets, where investors enjoy the benefits of instant settlement without counterparty risks.
+
+
+
+All operations are managed via Securitize and signed with the investor’s wallet, without the need for any paperwork.

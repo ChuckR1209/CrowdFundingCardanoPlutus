@@ -13,7 +13,7 @@ version:            0.1.0.0
 
 license: Apache-2.0
 license-files: LICENSE
-author:             Moxie
+author:             Chakravarti Raghavan
 
 -- A copyright notice.
 -- copyright:
@@ -41,15 +41,18 @@ library
     import: lang
     
     exposed-modules:
-      Simple.Simple,
-      Simple.SimpleType,
-      Simple.OffChainType,
-      Beneficiary.OnChain,
-      Beneficiary.OffChain,
-      Parameterized.OnChain,
-      Parameterized.OffChain,
-      Parameterized.Deploy,
-      Parameterized.EmulatorParameterized,
+      -- Simple.Simple,
+      -- Simple.SimpleType,
+      -- Simple.OffChainType,
+      -- Beneficiary.OnChain,
+      -- Beneficiary.OffChain,
+      -- Parameterized.OnChain,
+      -- Parameterized.OffChain,
+      -- Parameterized.Deploy,
+      -- Parameterized.EmulatorParameterized,
+      CrowdFunding.CrowdFundingOnChain,
+      CrowdFunding.CrowdDeploy,
+      CrowdFunding.CrowdDeploy2,
 
 
 -- Plutus dependencies
@@ -81,25 +84,25 @@ library
     hs-source-dirs: src
 
 
-test-suite plutus-tests
-  import: lang
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  hs-source-dirs: test
-  other-modules:
-    Spec.EmulatorSimpleType
-  build-depends:
-    plutus-tx -any,
-    plutus-tx-plugin,
-    plutus-contract -any,
-    plutus-pab -any,
-    plutus-ledger -any,
-    cardano-developer -any,
-    data-default,
-  build-depends:
-    base >=4.9 && <5,
-    tasty -any,
-    tasty-hunit -any,
-    text -any,
-    tasty-hedgehog >=0.2.0.0,
-    freer-extras -any,
+-- test-suite plutus-tests
+--   import: lang
+--   type: exitcode-stdio-1.0
+--   main-is: Spec.hs
+--   hs-source-dirs: test
+--   other-modules:
+--     Spec.EmulatorSimpleType
+--   build-depends:
+--     plutus-tx -any,
+--     plutus-tx-plugin,
+--     plutus-contract -any,
+--     plutus-pab -any,
+--     plutus-ledger -any,
+--     cardano-developer -any,
+--     data-default,
+--   build-depends:
+--     base >=4.9 && <5,
+--     tasty -any,
+--     tasty-hunit -any,
+--     text -any,
+--     tasty-hedgehog >=0.2.0.0,
+--     freer-extras -any,
