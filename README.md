@@ -22,30 +22,6 @@ Web2 platforms such as Kickstarter, GoFundMe, and WeFunder, have empowered indiv
 
 
 
-### Marginalized Groups
-
-
-
-The initial challenge with Web2-based crowdfunding is limited access, which results in reduced funding opportunities and exacerbates unequal distribution of resources. This excludes various groups from participating, including individuals from countries with sanctioned or authoritarian governments, marginalized communities such as sex workers, and regions without proper financial payment infrastructure.
-
-The second issue is the imbalance of power and responsibility in Web2 crowdfunding. These platforms are operated by large, centralized companies, which gives them significant market power to charge excessive fees. Furthermore, their centralization makes them susceptible to government intervention or executive decisions that restrict access to potential funders.
-
-
-
-Moreover, there is a subtler but potentially more significant issue - the majority of projects that use these platforms for crowdfunding are centralized organizations themselves. Funders are required to rely on their trustworthiness in fulfilling their commitments. There is a widespread reputation for Kickstarter projects to miss their delivery targets, and even reputable charitable organizations are not exempt from this.
-
-### Ease of Use 
-
-Web3 crowdfunding platforms are based on globally accessible cryptocurrency systems, eliminating the barriers and difficulties associated with Web2 platforms. This global and hassle-free nature has played a key role in the recent growth of Web3 crowdfunding, as seen in the success of Constitution DAO.
-
-How do they operate? A typical Web3 crowdfunding platform, such as Juicebox and Mirror, accepts ETH from investors and returns a token as a proof of receipt. Tokens, which are made possible by the versatility of Web3, can serve various purposes. Some crowdfunding projects use their tokens as a simple representation of the investors' contributions, while others use it as a form of governance token. Regardless of the purpose, tokens are highly popular as people enjoy owning and possessing tokens, even if they don't necessarily confer any rights.
-
-
-
-[Source]: https://thedefiant.io/web3-crowdfunding
-
-
-
 
 
 
@@ -216,11 +192,13 @@ And in `MintingDeploy.hs` we define the values of this parameter and create our 
 
 
 
-### Executing the Crowd Funding Contract
+### Instructions to Executing the Crowd Funding Contract
 
 
 
 #### STEP 1 - Mint NFT
+
+[mintFromScript.sh](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/shell-scripts/mintFromScript.sh)
 
 We use the `mintFromScript.sh` shell script which will construct the transaction to mint a Unique NFT to the Beneficiary address.
 
@@ -246,7 +224,9 @@ Note - since i was testing i minted 10 NFT's so i can repeat lot of tests. But p
 
 #### STEP 2 - Pay the NFT to the script
 
-Beneficiary now has to deposit the NFT at the Script. 
+[payToScriptCrowdFund.sh](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/shell-scripts/payToScriptCrowdFund.sh)
+
+Beneficiary now has to deposit the NFT at the Script to start off the Crowd Funding.
 
 We will use the shell script `payToScriptCrowdFund.sh` which will construct the transaction to take the NFT from their wallet and pay to the script.
 
@@ -265,36 +245,395 @@ After this step we should have a UTXO at the Crowd Funding Contract which has th
 
 
 
+#### STEP 3 - Contribution 
+
+[spendFromScriptCrowdFund.sh](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/shell-scripts/spendFromScriptCrowdFund.sh)
+
+To contribute the contributor will spend the UTXO at the script with the Unique NFT and add the contribution amount and pay it back to the script with this unique NFT.
+
+This script will construct the transaction to made this happen. 
+
+Again we preset lot of the info to make the transaction building easier by specifying the Script file info, Wallets contributing, datum info, redeem info, signing key files etc. 
+
+```bash
+# Set this for this Current run so for multiple runs no issues
+SCRIPT_NAME=CrowdFunding
+
+# TO_WALLET is contributor when redeem is Contribute and When its close its the Beneficiary wallet
+# TO_WALLET_NAME=Contributor    
+# COLLATERAL=Contributor
+# TO_WALLET_NAME=Collateral    # contributor 1 for 2nd run
+# COLLATERAL=Collateral        # we use the same contributor 1 wallet - one of the UTXO as colleteral too
+
+# TO_WALLET_NAME=Beneficiary    # Contributor 2 for the 2nd run
+# COLLATERAL=Beneficiary        # collateral for the Txn from same Contributor 2 wallet
+
+TO_WALLET_NAME=forPlutus    
+COLLATERAL=forPlutus
+CLOSE_PAYMENT=302000000
+
+#DATUM_HASH_FILE=crowdFunding-datumOut    # first contribution
+DATUM_HASH_FILE=crowdFunding-datumOut2   # 2nd contribution
+#REDEEMER_FILE=crowdFundingContribute-redeem
+#REDEEMER_FILE=crowdFundingContribute-redeem2
+REDEEMER_FILE=crowdFundingClose-redeem
+#WRITING_BACK_TO_SCRIPT=Y      # when we contribute this needs to be uncommented
+TOKEN_QUANTITY_SCRIPT=1
+
+SIGNER1=$(cat $BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.pubKeyHash)
+# SIGNER1=0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a
+SIGNER_FILE1=$BASE/.priv/Wallets/$TO_WALLET_NAME/$TO_WALLET_NAME.skey
+```
+
+
+
+We repeat this contribution step with how many ever contributions that can be done.
+
+
+
+#### STEP 4 - Close  
+
+[spendFromScriptCrowdFund.sh](https://github.com/rchak007/CrowdFundingCardanoPlutus/blob/main/shell-scripts/spendFromScriptCrowdFund.sh)
+
+Once the deadline is reached and Target Amount is also met the Beneficiary can now Close and claim the Ada at the UTXO at script with NFT.
+
+we use the same script with different parameters that will construct the transaction to made this happen. 
+
+Again we preset lot of the info to make the transaction building easier by specifying the Script file info, Beneficiary info, redeem info, signing key files etc. 
+
+With this the Crowd Funding is over.
 
 
 
 
 
+### Out of Scope / Future Improvements
 
+Due to lack of time some of the below were not implemented but will be improved upon in future.
 
+- It target amount it not reached by Deadline - right now the contract will just get stuck. But ability for contributors to withdraw their funds will be implemented in future. Right now we already created a Contributors list to know who contributed how much that can be utilized.
 
+- Ideally we also want contributors to then withdraw their funds anytime before deadline as long as Target amount is NOT reached. This also will be done in future. 
 
-
-### To do - 
-
-1 - show 2 Crowd Funding Campaigns working
-
-2 - show some error cases too
-
-3 - Show some visual UTXOs diagrams etc.
-
-3 - Out of scope and some future validations - due to lack of time some validations like 
-
-- if target amount it not reached is not implemented. 
-- Ideally we want to contributors to then withdraw their funds. 
-- And also withdraw anytime before the deadline is reached.
 - Deadline for Contribution also was not implemented due to lack of time. Its a minor thing that can be added.
 
-- Few visual diagrams of UTXO's etc. Real case i did and another fail case. 
-
-- Need to build a fail case to show.
+- Also currently we used Inline datum concept which can be improved to Datum hash in future
 
   
+
+
+
+
+
+### Implementing Crowd Funding on Cardano Testnet 
+
+Below we go through the implementing 2 Crowd Funding campaign successfully using the same Crowd Fund contract as this allows multiple campaigns to be done.
+
+Campaign 2 was done after Campaign 1.
+
+
+
+#### Crowd Funding Campaign 2
+
+
+
+##### Summary of Test
+
+Campaign 2 Target Value is 300 ADA now.
+
+We have Beneficiary as forPlutus Wallet (`addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg`).  
+
+We create a new NFT to identify this campaign.
+
+Contributor 1 will be Collateral Wallet (these are just my wallet names) will deposit 150 Ada.
+
+Contributor 2 will be Beneficiary wallet - will deposit 150 Ada
+
+Finally withdraw after target is reached.
+
+There will 3 failed tests to do negative testing.
+
+
+
+##### NFT UTXO
+
+we will use UTXO `12fd13deadc8248eac08dc9ea782fff58350abf37a06abad36bbb28cdbff0989#1` at forPlutus to create new NFT.
+
+https://preview.cexplorer.io/tx/12fd13deadc8248eac08dc9ea782fff58350abf37a06abad36bbb28cdbff0989
+
+
+
+##### Mint NFT 
+
+
+
+We use `mintFromScript` as described in the instructions to Mint the NFT.
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in 12fd13deadc8248eac08dc9ea782fff58350abf37a06abad36bbb28cdbff0989#1 --tx-in dd95dd17f46b3f93f1670e08565c5af46752dc8ad4ccdcb5ce72a3ebaddce198#1 --tx-out 'addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg+12000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --change-address=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg '--mint=1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --mint-script-file /home/chakravarti/emurgoCardano/plutus-scripts/MintBurn.plutus --mint-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/redeemer-mint.json --tx-in-collateral=dd9 5dd17f46b3f93f1670e08565c5af46752dc8ad4ccdcb5ce72a3ebaddce198#1 --required-signer-hash 0d29d2f72ba11f3381783dda5501139f397d81e83244fce13e7a711a --required-signer-hash dbbab47cf610921db8e266c3747cd393db6f9d4b7eb8e348ddeb3971 --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Estimated transaction fee: Lovelace 379893
++ cardano-cli transaction sign --tx-body-file /home/chakravarti/emurgoCardano/tx/tx.draft --signing-key-file /home/chakravarti/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey --signing-key-file /home/chakravarti/emurgoCardano/.priv/Wallets/forPlutus/forPlutus.skey --testnet-magic 2 --out-file /home/chakravarti/emurgoCardano/tx/tx.signed
++ cardano-cli transaction submit --tx-file /home/chakravarti/emurgoCardano/tx/tx.signed --testnet-magic 2
+Transaction successfully submitted.
+
+```
+
+
+
+(note - i minted 10 as it was testing and to make it easy to not mint again and again when testing would fail conditions and i would have to re-code the Crowd Fund contract but in production we would always mint only 1)
+
+![image-20230310174459012](Images/image-20230310174459012.png)
+
+
+
+##### Start of the Crowd Fund
+
+Now our beneficiary in this case is forPlutus Wallet (`addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg`). So as this wallet we first deposit this NFT to the script using `payToScript.sh` script. and also place a 2 Ada to get things started.
+
+```bash
+Your from UTXO is : c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#0
+cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#0 --tx-out addr_test1wzx9l6k7kdrhy6m45y4gkyrh25ktx3mzthd27y3gchs4dqqjs3hvd+2000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64 --tx-out-inline-datum-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFunding-datum.json --change-address=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Estimated transaction fee: Lovelace 172277
+Transaction with id:  47665eb1170c9c062239ddb29412a4f2a9808f92649207cb81d5e8c4362d9952
+Sign and submit Pay to Script Tx? [Y/N]: y
+You say Yes
+Transaction successfully submitted.
+
+```
+
+
+
+https://preview.cexplorer.io/tx/47665eb1170c9c062239ddb29412a4f2a9808f92649207cb81d5e8c4362d9952
+
+
+
+Below is the transaction on Testnet explorer + Datum 
+
+
+
+![image-20230311072746030](Images/image-20230311072746030.png)
+
+
+
+
+
+
+
+##### Contribution 1 - 150 Ada
+
+We will use the script `spendFromScript` to do the contrubution of 150 Ada. Since we spend the UTXO at Crowd Fund smart contract, which already has 2 Ada, we deposit 152 Ada and also the NFT.
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in 4d56f6d736f15652fd0d3c6246acc481ffd36392f119ef4201ec780e2f1ba904#0 --tx-in 47665eb1170c9c062239ddb29412a4f2a9808f92649207cb81d5e8c4362d9952#0 --tx-in-script-file /home/chakravarti/emurgoCardano/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFundingContribute-redeem.json --required-signer /home/chakravarti/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey --tx-in-collateral=4d56f6d736f15652fd0d3c6246acc481ffd36392f119ef4201ec780e2f1ba904#0 --tx-out 'addr_test1wzx9l6k7kdrhy6m45y4gkyrh25ktx3mzthd27y3gchs4dqqjs3hvd+152000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --tx-out-inline-datum-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFunding-datumOut.json --change-address=addr_test1vqxjn5hh9ws37vup0q7a54gpzw0njlvpaqeyfl8p8ea8zxs6e3vwy --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Estimated transaction fee: Lovelace 1423497
+++ cardano-cli transaction txid --tx-body-file /home/chakravarti/emurgoCardano/tx/tx.draft
++ TX_HASH=696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1
++ echo 'Transaction with id: ' 696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1
+Transaction with id:  696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1
++ read -p 'Sign and submit Pay to Script Tx? [Y/N]: ' input
+Sign and submit Pay to Script Tx? [Y/N]: y
++ case $input in
++ echo 'You say Yes'
+You say Yes
++ cardano-cli transaction sign --tx-body-file /home/chakravarti/emurgoCardano/tx/tx.draft --signing-key-file /home/chakravarti/emurgoCardano/.priv/Wallets/Collateral/Collateral.skey --testnet-magic 2 --out-file /home/chakravarti/emurgoCardano/tx/tx.signed
++ cardano-cli transaction submit --tx-file /home/chakravarti/emurgoCardano/tx/tx.signed --testnet-magic 2
+Transaction successfully submitted.
+
+```
+
+
+
+https://preview.cexplorer.io/datum/7e7ca4ccb82cdaa044ad1aaa0076a4fc2acf88f9d93e13fc71fe205aff703f9c
+
+
+
+![image-20230311074713940](Images/image-20230311074713940.png)
+
+
+
+
+
+
+
+
+
+##### Fail test 1- withdraw when target is not reached
+
+We now demonstrate that Crowd Fund correctly fails this transaction as Target is not reached and Beneficiary tried to withdraw. 
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#1 --tx-in 696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1#0 --tx-in-script-file /home/chakravarti/emurgoCardano/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFundingClose-redeem.json --required-signer /home/chakravarti/emurgoCardano/.priv/Wallets/forPlutus/forPlutus.skey --tx-in-collateral=c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#1 --tx-out 'addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg+152000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --change-address=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Command failed: transaction build  Error: The following scripts have execution failures:
+the script for transaction input 0 (in the order of the TxIds) failed with: 
+The Plutus script evaluation failed: An error has occurred:  User error:
+The machine terminated because of an error, either from a built-in function or from an explicit use of 'error'.
+Script debugging logs: Target amount not reached
+PT5
+
+
+```
+
+
+
+
+
+##### Fail test 2- we pass incorrect Datum
+
+we do another negative test case. Here we deposit back contribution amount only 10 Ada but Datum we construct with 302 Ada.
+
+
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in a225c8b3f250919cd4f6f83684f513f8b3d51f1e3a035a455d2e26cba8598522#1 --tx-in 696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1#0 --tx-in-script-file /home/chakravarti/emurgoCardano/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFundingContribute-redeem2.json --required-signer /home/chakravarti/emurgoCardano/.priv/Wallets/Beneficiary/Beneficiary.skey --tx-in-collateral=a225c8b3f250919cd4f6f83684f513f8b3d51f1e3a035a455d2e26cba8598522#1 --tx-out 'addr_test1wzx9l6k7kdrhy6m45y4gkyrh25ktx3mzthd27y3gchs4dqqjs3hvd+10000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --tx-out-inline-datum-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFunding-datumOut2.json --change-address=addr_test1vq8f02sr8nhwwckz22zumny59pch3uqmgkjctlgdfk5rs7sx52ldh --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Command failed: transaction build  Error: The following scripts have execution failures:
+the script for transaction input 0 (in the order of the TxIds) failed with: 
+The Plutus script evaluation failed: An error has occurred:  User error:
+The machine terminated because of an error, either from a built-in function or from an explicit use of 'error'.
+Script debugging logs: Actual tx-out Values and constructed Datum tx-out dont match
+PT5
+
+```
+
+
+
+##### Contributor 2 - Correct amount
+
+Now the 2nd contributor makes another 150 Ada deposit.
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in a225c8b3f250919cd4f6f83684f513f8b3d51f1e3a035a455d2e26cba8598522#1 --tx-in 696defbaa6d7e6d298a0136a6195a41fc3694c1c5dc285025374e9605c7b1fa1#0 --tx-in-script-file /home/chakravarti/emurgoCardano/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFundingContribute-redeem2.json --required-signer /home/chakravarti/emurgoCardano/.priv/Wallets/Beneficiary/Beneficiary.skey --tx-in-collateral=a225c8b3f250919cd4f6f83684f513f8b3d51f1e3a035a455d2e26cba8598522#1 --tx-out 'addr_test1wzx9l6k7kdrhy6m45y4gkyrh25ktx3mzthd27y3gchs4dqqjs3hvd+302000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --tx-out-inline-datum-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFunding-datumOut2.json --change-address=addr_test1vq8f02sr8nhwwckz22zumny59pch3uqmgkjctlgdfk5rs7sx52ldh --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Estimated transaction fee: Lovelace 1540923
+++ cardano-cli transaction txid --tx-body-file /home/chakravarti/emurgoCardano/tx/tx.draft
++ TX_HASH=c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51
++ echo 'Transaction with id: ' c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51
+Transaction with id:  c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51
++ read -p 'Sign and submit Pay to Script Tx? [Y/N]: ' input
+Sign and submit Pay to Script Tx? [Y/N]: y
++ case $input in
++ echo 'You say Yes'
+You say Yes
++ cardano-cli transaction sign --tx-body-file /home/chakravarti/emurgoCardano/tx/tx.draft --signing-key-file /home/chakravarti/emurgoCardano/.priv/Wallets/Beneficiary/Beneficiary.skey --testnet-magic 2 --out-file /home/chakravarti/emurgoCardano/tx/tx.signed
++ cardano-cli transaction submit --tx-file /home/chakravarti/emurgoCardano/tx/tx.signed --testnet-magic 2
+Transaction successfully submitted.
+
+```
+
+
+
+https://preview.cexplorer.io/tx/c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51
+
+
+
+![image-20230311082233740](Images/image-20230311082233740.png)
+
+
+
+
+
+
+
+##### Fail Test 3 - Deadline not reached
+
+Withdrawal when Deadline not reached also fails correctly.
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#1 --tx-in c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51#0 --tx-in-script-file /home/chakravarti/emurgoCardano/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/emurgoCardano/plutus-scripts/crowdFundingClose-redeem.json --required-signer /home/chakravarti/emurgoCardano/.priv/Wallets/forPlutus/forPlutus.skey --tx-in-collateral=c922b8fd03d54ee8ab8145834f853189fd8a192360f700dd5bb44ffb9f720bbd#1 --tx-out 'addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg+302000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --change-address=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg --invalid-before 9869941 --invalid-hereafter 9870141 --protocol-params-file /home/chakravarti/emurgoCardano/tx/pparams.json --out-file /home/chakravarti/emurgoCardano/tx/tx.draft
+Command failed: transaction build  Error: The following scripts have execution failures:
+the script for transaction input 0 (in the order of the TxIds) failed with: 
+The Plutus script evaluation failed: An error has occurred:  User error:
+The machine terminated because of an error, either from a built-in function or from an explicit use of 'error'.
+Script debugging logs: Deadline not yet reached
+PT5
+
+
+```
+
+
+
+
+
+##### Crowd Fund Close withdraw
+
+So now the campaign was successful and we can collect the 302 Ada. Target is reached and also Deadline is reached.
+
+we use `spendScript.sh` with redeem Close to collect the funds.
+
+```bash
++ cardano-cli transaction build --babbage-era --cardano-mode --testnet-magic 2 --tx-in 47665eb1170c9c062239ddb29412a4f2a9808f92649207cb81d5e8c4362d9952#1 --tx-in c3f9b532d8e783eac5329816d50471b001a22abf2d8059aa1b6f2f5918d04e51#0 --tx-in-script-file /home/chakravarti/CrowdFundingCardanoPlutus/plutus-scripts/CrowdFunding.plutus --tx-in-inline-datum-present --tx-in-redeemer-file /home/chakravarti/CrowdFundingCardanoPlutus/plutus-scripts/crowdFundingClose-redeem.json --required-signer /home/chakravarti/CrowdFundingCardanoPlutus/.priv/Wallets/forPlutus/forPlutus.skey --tx-in-collateral=47665eb1170c9c062239ddb29412a4f2a9808f92649207cb81d5e8c4362d9952#1 --tx-out 'addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg+302000000+1 404c7e7ab0e42a8b1a247c2eba252698cad8a19c50c0cf5cfb1c2283.4d7943726f776446756e64' --change-address=addr_test1vrdm4dru7cgfy8dcufnvxaru6wfakmuafdlt3c6gmh4njugn794kg --invalid-before 11896705 --invalid-hereafter 11896905 --protocol-params-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/pparams.json --out-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/tx.draft
+Estimated transaction fee: Lovelace 823524
+++ cardano-cli transaction txid --tx-body-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/tx.draft
++ TX_HASH=c7c0ce0743490afd753b4fad6beb69b65db55e1d04662521e5344d477984eca8
++ echo 'Transaction with id: ' c7c0ce0743490afd753b4fad6beb69b65db55e1d04662521e5344d477984eca8
+Transaction with id:  c7c0ce0743490afd753b4fad6beb69b65db55e1d04662521e5344d477984eca8
++ read -p 'Sign and submit Pay to Script Tx? [Y/N]: ' input
+Sign and submit Pay to Script Tx? [Y/N]: y
++ case $input in
++ echo 'You say Yes'
+You say Yes
++ cardano-cli transaction sign --tx-body-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/tx.draft --signing-key-file /home/chakravarti/CrowdFundingCardanoPlutus/.priv/Wallets/forPlutus/forPlutus.skey --testnet-magic 2 --out-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/tx.signed
++ cardano-cli transaction submit --tx-file /home/chakravarti/CrowdFundingCardanoPlutus/tx/tx.signed --testnet-magic 2
+Transaction successfully submitted.
+```
+
+
+
+https://preview.cexplorer.io/tx/c7c0ce0743490afd753b4fad6beb69b65db55e1d04662521e5344d477984eca8
+
+
+
+302 Ada is now transferred from Crowd Fund contract to the forPlutus address.
+
+![image-20230311084940767](Images/image-20230311084940767.png)
+
+
+
+
+
+Below the Crowd Fund Smart contract now has been Redeemed. So is 0 Ada.
+
+![image-20230311084723805](Images/image-20230311084723805.png)
+
+
+
+
+
+
+
+#### Crowd Funding Campaign 1
+
+
+
+##### Summary of Test
+
+Campaign 1 Target Value is 60 ADA.
+
+We have Beneficiary as Beneficiary Wallet (`addr_test1vq8f02sr8nhwwckz22zumny59pch3uqmgkjctlgdfk5rs7sx52ldh`).  
+
+We create a new NFT to identify this campaign.
+
+Contributor 1 will deposit 30 Ada.
+
+Contributor 2 will be Beneficiary wallet - will deposit 30 Ada
+
+Finally withdraw after target is reached.
+
+
+
+
+
+https://preview.cexplorer.io/address/addr_test1wzx9l6k7kdrhy6m45y4gkyrh25ktx3mzthd27y3gchs4dqqjs3hvd/tx#data
+
+the 2nd part screenshot below shows the Campaign 1 which was done 1st and then the 1st screenshot below shows further the campaign 2. 
+
+
+
+![image-20230311091408245](Images/image-20230311091408245.png)
+
+![image-20230311090853724](Images/image-20230311090853724.png)
+
+
+
+
 
 
 
@@ -326,7 +665,7 @@ We will have the Beneficiary write up a Legal contract and we will store a hash 
 
 
 
-### Unit Testing
+### Haskell Unit Testing
 
 
 
@@ -618,34 +957,7 @@ This lets Beneficiary withdraw only after the deadline has passed.
 
 
 
-https://medium.com/securitize/introducing-web3-crowdfunding-4d0e5cc6f0f7
-
-https://securitize.io/raise-capital/web3-crowdfunding#:~:text=Known%20as%20the%20next%20generation,costly%20third%2Dparty%20integrations%20and
-
-Leverage the power of Web3
-
-Web3 is recognized as the future of the internet. It transforms the traditional cloud-based web into a decentralized platform where users can directly transfer value among each other. In this new ecosystem, tasks such as user registration, contract signing, and token receipt are completed using a user's cryptocurrency wallet, eliminating the need for expensive third-party services and reducing compliance worries.
 
 
 
-Investors can easily connect their crypto wallet to purchase Security Tokens with USDC and instantly receive their digital assets.
 
-
-
-Easily reward token holders and manage governance in a fully transparent way, turning your fans into loyal shareholders and brand evangelists.
-
-
-
-Regulatory requirements, such as jurisdictional restrictions are automatically enforced via smart contracts.
-
-
-
-Gain real-time access to your cap-table and its activity, providing you with valuable insights on shareholder activity.
-
-
-
-Tokens can be transferred 24/7 and easily integrate with secondary markets, where investors enjoy the benefits of instant settlement without counterparty risks.
-
-
-
-All operations are managed via Securitize and signed with the investor’s wallet, without the need for any paperwork.
