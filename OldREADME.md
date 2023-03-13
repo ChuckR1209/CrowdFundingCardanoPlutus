@@ -43,23 +43,13 @@ Web3 is recognized as the future of the internet. It transforms the traditional 
 
 Investors can easily connect their crypto wallet to purchase Security Tokens with USDC and instantly receive their digital assets.
 
-
-
 Easily reward token holders and manage governance in a fully transparent way, turning your fans into loyal shareholders and brand evangelists.
-
-
 
 Regulatory requirements, such as jurisdictional restrictions are automatically enforced via smart contracts.
 
-
-
 Gain real-time access to your cap-table and its activity, providing you with valuable insights on shareholder activity.
 
-
-
 Tokens can be transferred 24/7 and easily integrate with secondary markets, where investors enjoy the benefits of instant settlement without counterparty risks.
-
-
 
 All operations are managed via Securitize and signed with the investor’s wallet, without the need for any paperwork.
 

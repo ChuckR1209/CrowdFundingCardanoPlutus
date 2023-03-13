@@ -8,21 +8,25 @@
 
 
 
-
-
-
-
-
-
-
-
 Web3 holds the promise of transforming crowdfunding to levels beyond the capabilities of Web2. To realize this potential, we must fully adopt both the trust-minimizing principles and technological advancements of Web2.
 
 Web2 platforms such as Kickstarter, GoFundMe, and WeFunder, have empowered individuals, non-profit organizations, and startups to seek funding from their communities through donations and even investment. This has been a major development. However, there are still shortcomings with these Web2 platforms that we all acknowledge.
 
+#### Leverage the power of Web3
 
+Web3 is recognized as the future of the internet. It transforms the traditional cloud-based web into a decentralized platform where users can directly transfer value among each other. In this new ecosystem, tasks such as user registration, contract signing, and token receipt are completed using a user's cryptocurrency wallet, eliminating the need for expensive third-party services and reducing compliance worries.
 
+Investors can easily connect their crypto wallet to purchase Security Tokens with USDC and instantly receive their digital assets.
 
+Easily reward token holders and manage governance in a fully transparent way, turning your fans into loyal shareholders and brand evangelists.
+
+Regulatory requirements, such as jurisdictional restrictions are automatically enforced via smart contracts.
+
+Gain real-time access to your cap-table and its activity, providing you with valuable insights on shareholder activity.
+
+Tokens can be transferred 24/7 and easily integrate with secondary markets, where investors enjoy the benefits of instant settlement without counterparty risks.
+
+All operations are managed via Securitize and signed with the investor’s wallet, without the need for any paperwork.
 
 
 
@@ -759,7 +763,7 @@ l_txinfoVal4Test1 = Contexts.scriptContextTxInfo lScriptContextVal4Test1
 
 ### Validations
 
-
+Below are various validations done by our Crowd Funding smart contract.
 
 
 
